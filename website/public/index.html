@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WasteWealth - Turn Your Waste into Wealth</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+  <div class="nav-container">
+    <div class="nav-logo">
+      <i class="fas fa-recycle"></i>
+      <span>WasteWealth</span>
+    </div>
+    <ul class="nav-menu">
+      <li class="nav-item"><a href="#home" class="nav-link" data-page="home">Home</a></li>
+      <li class="nav-item"><a href="#pricing" class="nav-link" data-page="pricing">Pricing</a></li>
+      <li class="nav-item"><a href="#about" class="nav-link" data-page="about">About</a></li>
+      <li class="nav-item user-profile" id="user-profile-item" style="display: none;">
+        <div class="profile-dropdown">
+          <button class="profile-toggle">
+            <i class="fas fa-user-circle"></i>
+            <span id="user-name">User</span>
+          </button>
+        </div>
+      </li>
+      <li class="nav-item" id="register-item"><a href="#register" class="nav-link btn-register" data-page="register">Register</a></li>
+      <li class="nav-item" id="login-item"><a href="#login" class="nav-link btn-login" data-page="login">Login</a></li>
+    </ul>
+    <div class="hamburger">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </div>
+  </div>
+</nav>
+
+
+    <!-- Main Content Container -->
+    <main id="main-content">
+        <!-- Home Page Content -->
+        <div id="home-page" class="page active">
+            <!-- Hero Section -->
+            <section id="home" class="hero">
+                <div class="hero-container">
+                    <div class="hero-content">
+                        <h1>Turn Your Waste Into <span>Wealth</span></h1>
+                        <p>Schedule a pickup for your segregated waste and get paid for contributing to a cleaner environment.</p>
+                        <div class="hero-buttons">
+                            <button class="btn-primary">Schedule Pickup</button>
+                            <button class="btn-secondary">Learn More</button>
+                        </div>
+                    </div>
+                    <div class="hero-image">
+                        <img src="images/recycle-img.png" alt="Recycling">
+                    </div>
+                </div>
+            </section>
+
+            <!-- How It Works -->
+            <section id="how-it-works" class="how-it-works">
+                <div class="container">
+                    <h2>How It Works</h2>
+                    <div class="steps">
+                        <div class="step">
+                            <div class="step-icon">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            <h3>1. Segregate Waste</h3>
+                            <p>Separate your waste into categories: biodegradable, non-biodegradable, and organic.</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <h3>2. Schedule Pickup</h3>
+                            <p>Choose a convenient time for waste collection through our app or website.</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">
+                                <i class="fas fa-truck"></i>
+                            </div>
+                            <h3>3. We Collect</h3>
+                            <p>Our trained waste collectors will pick up the waste from your doorstep.</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <h3>4. Get Paid</h3>
+                            <p>Receive payment based on the weight and type of waste you submit.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            
+
+            <!-- Waste Categories -->
+            <section class="categories">
+                <div class="container">
+                    <h2>Waste Categories We Accept</h2>
+                    <div class="category-cards">
+                        <div class="category-card">
+                            <div class="category-icon bio">
+                                <i class="fas fa-leaf"></i>
+                            </div>
+                            <h3>Biodegradable</h3>
+                            <p>Food waste, garden waste, paper products</p>
+                            <p class="price">₹5-10 per kg</p>
+                        </div>
+                        <div class="category-card">
+                            <div class="category-icon non-bio">
+                                <i class="fas fa-wine-bottle"></i>
+                            </div>
+                            <h3>Non-Biodegradable</h3>
+                            <p>Plastic, metal, glass, packaging materials</p>
+                            <p class="price">₹8-15 per kg</p>
+                        </div>
+                        <div class="category-card">
+                            <div class="category-icon organic">
+                                <i class="fas fa-apple-alt"></i>
+                            </div>
+                            <h3>Organic</h3>
+                            <p>Kitchen waste, vegetable peels, coffee grounds</p>
+                            <p class="price">₹4-8 per kg</p>
+                        </div>
+                        <div class="category-card">
+                            <div class="category-icon e-waste">
+                                <i class="fas fa-laptop"></i>
+                            </div>
+                            <h3>E-Waste</h3>
+                            <p>Electronics, batteries, cables, devices</p>
+                            <p class="price">₹20-50 per kg</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CTA Section -->
+            <section class="cta">
+                <div class="container">
+                    <div class="cta-content">
+                        <h2>Ready to Turn Your Waste into Wealth?</h2>
+                        <p>Join thousands of households already contributing to a cleaner environment while earning money.</p>
+                        <button class="btn-primary">Get Started Today</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Pricing Page Content -->
+        <div id="pricing-page" class="page">
+            <section class="pricing-hero">
+                <div class="container">
+                    <h1>Transparent Pricing</h1>
+                    <p>We believe in fair compensation for your recycling efforts. Here's what you can earn.</p>
+                </div>
+            </section>
+
+            <section class="pricing-details">
+                <div class="container">
+                    <div class="pricing-table">
+                        <div class="pricing-header">
+                            <div class="pricing-col category-col">Waste Category</div>
+                            <div class="pricing-col rate-col">Rate per kg</div>
+                            <div class="pricing-col example-col">Example Items</div>
+                        </div>
+                        
+                        <div class="pricing-row">
+                            <div class="pricing-col category-col">
+                                <div class="category-name">
+                                    <div class="category-icon bio">
+                                        <i class="fas fa-leaf"></i>
+                                    </div>
+                                    <span>Biodegradable</span>
+                                </div>
+                            </div>
+                            <div class="pricing-col rate-col">₹5 - ₹10</div>
+                            <div class="pricing-col example-col">Food waste, garden waste, paper products</div>
+                        </div>
+                        
+                        <div class="pricing-row">
+                            <div class="pricing-col category-col">
+                                <div class="category-name">
+                                    <div class="category-icon non-bio">
+                                        <i class="fas fa-wine-bottle"></i>
+                                    </div>
+                                    <span>Non-Biodegradable</span>
+                                </div>
+                            </div>
+                            <div class="pricing-col rate-col">₹8 - ₹15</div>
+                            <div class="pricing-col example-col">Plastic, metal, glass, packaging materials</div>
+                        </div>
+                        
+                        <div class="pricing-row">
+                            <div class="pricing-col category-col">
+                                <div class="category-name">
+                                    <div class="category-icon organic">
+                                        <i class="fas fa-apple-alt"></i>
+                                    </div>
+                                    <span>Organic</span>
+                                </div>
+                            </div>
+                            <div class="pricing-col rate-col">₹4 - ₹8</div>
+                            <div class="pricing-col example-col">Kitchen waste, vegetable peels, coffee grounds</div>
+                        </div>
+                        
+                        <div class="pricing-row">
+                            <div class="pricing-col category-col">
+                                <div class="category-name">
+                                    <div class="category-icon e-waste">
+                                        <i class="fas fa-laptop"></i>
+                                    </div>
+                                    <span>E-Waste</span>
+                                </div>
+                            </div>
+                            <div class="pricing-col rate-col">₹20 - ₹50</div>
+                            <div class="pricing-col example-col">Electronics, batteries, cables, devices</div>
+                        </div>
+                        
+                        <div class="pricing-row">
+                            <div class="pricing-col category-col">
+                                <div class="category-name">
+                                    <div class="category-icon metal">
+                                        <i class="fas fa-wrench"></i>
+                                    </div>
+                                    <span>Metal</span>
+                                </div>
+                            </div>
+                            <div class="pricing-col rate-col">₹15 - ₹30</div>
+                            <div class="pricing-col example-col">Aluminum cans, steel items, metal scraps</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="pricing-info">
+                <div class="container">
+                    <div class="info-cards">
+                        <div class="info-card">
+                            <div class="info-icon">
+                                <i class="fas fa-weight"></i>
+                            </div>
+                            <h3>Weight-Based Pricing</h3>
+                            <p>We pay based on the actual weight of your waste. The more you recycle, the more you earn!</p>
+                        </div>
+                        
+                        <div class="info-card">
+                            <div class="info-icon">
+                                <i class="fas fa-gem"></i>
+                            </div>
+                            <h3>Quality Matters</h3>
+                            <p>Properly segregated and clean waste fetches higher prices. Keep your recyclables dry and clean.</p>
+                        </div>
+                        
+                        <div class="info-card">
+                            <div class="info-icon">
+                                <i class="fas fa-calendar"></i>
+                            </div>
+                            <h3>Regular Pickups</h3>
+                            <p>Schedule regular pickups to maximize your earnings and maintain a cleaner environment.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="earning-calculator">
+                <div class="container">
+                    <h2>Earnings Calculator</h2>
+                    <div class="calculator">
+                        <div class="calculator-form">
+                            <div class="form-group">
+                                <label for="waste-type">Waste Type</label>
+                                <select id="waste-type">
+                                    <option value="biodegradable">Biodegradable (₹5-10/kg)</option>
+                                    <option value="non-biodegradable">Non-Biodegradable (₹8-15/kg)</option>
+                                    <option value="organic">Organic (₹4-8/kg)</option>
+                                    <option value="e-waste">E-Waste (₹20-50/kg)</option>
+                                    <option value="metal">Metal (₹15-30/kg)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="weight">Weight (kg)</label>
+                                <input type="number" id="weight" min="1" max="100" value="5">
+                            </div>
+                            
+                            <button id="calculate-btn" class="btn-primary">Calculate Earnings</button>
+                        </div>
+                        
+                        <div class="calculator-result">
+                            <h3>Estimated Earnings</h3>
+                            <div class="result-amount">₹0</div>
+                            <p>Based on average market rates</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- About Page Content -->
+        <div id="about-page" class="page">
+            <section class="about-hero">
+                <div class="container">
+                    <h1>About WasteWealth</h1>
+                    <p>Transforming waste management through innovation and community participation</p>
+                </div>
+            </section>
+
+            <section class="our-story">
+                <div class="container">
+                    <div class="story-content">
+                        <div class="story-text">
+                            <h2>Our Story</h2>
+                            <p>WasteWealth was founded in 2023 with a simple mission: to make recycling rewarding and accessible for everyone. We noticed that despite increased awareness about waste management, many households still struggled with proper waste disposal.</p>
+                            <p>Our platform bridges the gap between environmentally conscious citizens and efficient waste management systems. By incentivizing proper waste segregation and recycling, we're creating a sustainable ecosystem that benefits both people and the planet.</p>
+                        </div>
+                        <div class="story-image">
+                            <img src="images/recycle-img.png" alt="Our Story">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mission-vision">
+                <div class="container">
+                    <div class="mv-cards">
+                        <div class="mv-card">
+                            <div class="mv-icon">
+                                <i class="fas fa-bullseye"></i>
+                            </div>
+                            <h3>Our Mission</h3>
+                            <p>To create a sustainable waste management ecosystem that rewards individuals for responsible recycling while reducing environmental pollution.</p>
+                        </div>
+                        
+                        <div class="mv-card">
+                            <div class="mv-icon">
+                                <i class="fas fa-eye"></i>
+                            </div>
+                            <h3>Our Vision</h3>
+                            <p>To become India's leading waste management platform that transforms how communities perceive and handle their waste.</p>
+                        </div>
+                        
+                        <div class="mv-card">
+                            <div class="mv-icon">
+                                <i class="fas fa-hand-holding-heart"></i>
+                            </div>
+                            <h3>Our Values</h3>
+                            <p>Sustainability, Innovation, Community, Transparency, and Environmental Responsibility guide everything we do.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="team-section">
+                <div class="container">
+                    <h2>Our Team</h2>
+                    <div class="team-members">
+                        <div class="team-member">
+                            <div class="member-image">
+                                <img src="images/male-photo3.jpg" alt="Team Member">
+                            </div>
+                            <h3>Rajesh Kumar</h3>
+                            <p class="role">Founder & CEO</p>
+                            <p>Environmental engineer with 10+ years of experience in waste management.</p>
+                        </div>
+                        
+                        <div class="team-member">
+                            <div class="member-image">
+                                <img src="images/no.1.jpg" alt="Team Member">
+                            </div>
+                            <h3>Priya Sharma</h3>
+                            <p class="role">CTO</p>
+                            <p>Tech enthusiast passionate about building solutions for environmental challenges.</p>
+                        </div>
+                        
+                        <div class="team-member">
+                            <div class="member-image">
+                                <img src="images/no.2.jpg" alt="Team Member">
+                            </div>
+                            <h3>Arun Patel</h3>
+                            <p class="role">Operations Head</p>
+                            <p>Logistics expert ensuring seamless waste collection and processing.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="impact-stats">
+                <div class="container">
+                    <h2>Our Impact</h2>
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-number" data-target="5000">0</div>
+                            <div class="stat-label">Households Served</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number" data-target="125">0</div>
+                            <div class="stat-label">Tons Recycled</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number" data-target="750000">0</div>
+                            <div class="stat-label">₹ Distributed</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number" data-target="15">0</div>
+                            <div class="stat-label">Cities</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Registration Page Content -->
+<div id="register-page" class="page">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-background">
+          <div class="auth-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+            <div class="shape shape-4"></div>
+          </div>
+        </div>
+        <div class="auth-content">
+          <div class="auth-header">
+            <h2>Create Account</h2>
+            <p>Join WasteWealth and start turning your waste into wealth</p>
+          </div>
+          <form id="register-form" class="auth-form">
+            <div class="form-group">
+              <div class="input-group">
+                <input type="text" id="register-name" placeholder="Full Name" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-group">
+                <input type="email" id="register-email" placeholder="Email Address" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-group">
+                <input type="tel" id="register-phone" placeholder="Phone Number" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-group">
+                <input type="password" id="register-password" placeholder="Password" required>
+                <button type="button" class="password-toggle">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+              <div class="password-strength">
+                <div class="strength-bar">
+                  <div class="strength-fill"></div>
+                </div>
+                <div class="strength-text">Password strength: <span>None</span></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-group">
+                <input type="password" id="register-confirm-password" placeholder="Confirm Password" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-group">
+                <input type="text" id="register-address" placeholder="Full Address" required>
+              </div>
+            </div>
+            <div class="form-group checkbox-group">
+              <input type="checkbox" id="register-terms" required>
+              <label for="register-terms">I agree to the <a href="#">Terms & Conditions</a> and <a href="#">Privacy Policy</a></label>
+            </div>
+            <button type="submit" class="auth-button">
+              <span class="button-text">Create Account</span>
+              <div class="button-loader">
+                <div class="loader"></div>
+              </div>
+            </button>
+          </form>
+          <div class="auth-footer">
+            <p>Already have an account? <a href="#" class="auth-link" data-page="login">Sign In</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Login Page Content -->
+ <div id="login-page" class="page">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-background">
+          <div class="auth-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+            <div class="shape shape-4"></div>
+          </div>
+        </div>
+        <div class="auth-content">
+          <div class="auth-header">
+            <h2>Welcome Back</h2>
+            <p>Sign in to your WasteWealth account</p>
+          </div>
+          <form id="login-form" class="auth-form">
+            <div class="form-group">
+              <div class="input-group">
+                <input type="email" id="login-email" placeholder="Email Address" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-group">
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="button" class="password-toggle">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="form-options">
+              <div class="checkbox-group remember-me">
+                <input type="checkbox" id="remember-me">
+                <label for="remember-me">Remember me</label>
+              </div>
+              <a href="#" class="forgot-password" id="forgot-password-link">Forgot Password?</a>
+            </div>
+            <button type="submit" class="auth-button">
+              <span class="button-text">Sign In</span>
+              <div class="button-loader">
+                <div class="loader"></div>
+              </div>
+            </button>
+          </form>
+          <div class="auth-footer">
+            <p>Don't have an account? <a href="#" class="auth-link" data-page="register">Create Account</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- Forgot Password Modal -->
+<div id="forgot-password-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Reset Password</h3>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p>Enter your email address and we'll send you instructions to reset your password.</p>
+      <form id="forgot-password-form">
+        <div class="form-group">
+          <div class="input-group">
+            <input type="email" id="reset-email" placeholder="Email Address" required>
+          </div>
+        </div>
+        <button type="submit" class="auth-button">Send Reset Link</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+   <section class="app-desc-section">
+    <div class="container app-desc-container">
+      <div class="app-desc-text">
+        <h2>WasteWealth App — Manage Waste, Earn Rewards!</h2>
+        <p>
+          Discover the future of recycling on-the-go. Schedule waste pickups, track your recycling wallet, and get rewarded for every bit of waste you recycle. Experience seamless, sustainable living with WasteWealth's official app.
+        </p>
+        <a href="#" class="download-btn"><i class="fa fa-download"></i> Download Now</a>
+      </div>
+      <div class="app-desc-image">
+        <img src="images/recycle-img.png" alt="Mobile App Preview">
+      </div>
+    </div>
+  </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3><i class="fas fa-recycle"></i> WasteWealth</h3>
+                    <p>Transforming waste management through technology and community participation.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#home" data-page="home">Home</a></li>
+                        <li><a href="#how-it-works" data-page="how-it-works">How It Works</a></li>
+                        <li><a href="#pricing" data-page="pricing">Pricing</a></li>
+                        <li><a href="#about" data-page="about">About</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact Us</h4>
+                    <p><i class="fas fa-envelope"></i> vivekkumarjha140s@gmail.com</p>
+                    <p><i class="fas fa-phone"></i> +91 9355790851</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 WasteWealth. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
