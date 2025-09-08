@@ -1,0 +1,36 @@
+import React from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Provider as PaperProvider } from 'react-native-paper';
+import { AuthProvider } from '../../context/AuthContext';
+import { ThemeProvider, useTheme } from '../../context/ThemeContext';
+import { LoadingProvider, useLoading } from '../../context/LoadingContext';
+import AppNavigator from '../../navigation/AppNavigator';
+import LoadingOverlay from '../../components/common/LoadingOverlay';
+
+function Main() {
+  const { isDarkTheme, theme } = useTheme();
+  const { isLoading } = useLoading();
+
+  return (
+    <PaperProvider theme={theme}>
+      <SafeAreaProvider>
+        <StatusBar style={isDarkTheme ? 'light' : 'dark'} />
+        <AppNavigator />
+        {isLoading && <LoadingOverlay />}
+      </SafeAreaProvider>
+    </PaperProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <LoadingProvider>
+          <Main />
+        </LoadingProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}

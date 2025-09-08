@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "382351360163",
+    "project_id": "wastewealth-14e1e",
+    "storage_bucket": "wastewealth-14e1e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:382351360163:android:d87a069e9d6d7b7023ff16",
+        "android_client_info": {
+          "package_name": "com.example.wastewealth"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmrHA2w38gS0Hb71O5Ae1Uo7mKwUiesDU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
