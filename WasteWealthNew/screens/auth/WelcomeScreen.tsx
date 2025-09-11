@@ -16,7 +16,7 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <Image 
-          source={require('../../assets/images/logo.png')}
+          source={require('../../assets/icon.png')}
           style={styles.logo}
           resizeMode="contain"
         />

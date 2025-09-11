@@ -234,7 +234,7 @@ const WorkerProfileScreen: React.FC = () => {
                   {user?.name || 'Worker Name'}
                 </Text>
                 <Text variant="bodyMedium" style={styles.profileEmail}>
-                  {user?.email || 'worker@wastewealth.com'}
+                  {user?.email || 'saquibnadeem15@.com'}
                 </Text>
                 <Chip
                   icon={workerStats.availability ? 'check-circle' : 'pause-circle'}

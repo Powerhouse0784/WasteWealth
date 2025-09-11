@@ -21,13 +21,13 @@ import { useAuth } from '../../context/AuthContext';
 const { width } = Dimensions.get('window');
 
 const AllActionsScreen: React.FC = ({ navigation }: any) => {
-  const { colors } = useTheme();
+  const theme = useTheme();
   const { user } = useAuth();
   
   // Animation ref
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Professional color scheme
+  // Dynamic color scheme based on theme
   const colors_custom = {
     primary: '#2E7D32',
     secondary: '#1976D2',
@@ -35,49 +35,47 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
     success: '#388E3C',
     warning: '#F57C00',
     error: '#D32F2F',
-    surface: '#FFFFFF',
-    background: '#F8F9FA',
-    text: '#212121',
-    textSecondary: '#757575',
-    border: '#E0E0E0',
+    surface: theme.colors.surface,
+    background: theme.colors.background,
+    text: theme.colors.onSurface,
+    textSecondary: theme.colors.onSurfaceVariant,
+    border: theme.colors.outline,
   };
 
   const handleNavigation = (action: string) => {
-    switch (action) {
-      case 'SellWaste':
-      case 'SchedulePickup':
-        navigation.navigate('SellWasteScreen');
-        break;
-      case 'Wallet':
-        navigation.navigate('WalletScreen');
-        break;
-      case 'Analytics':
-      case 'History':
-        navigation.navigate('PickupHistoryScreen');
-        break;
-      case 'Profile':
-        navigation.navigate('ProfileScreen');
-        break;
-      case 'Settings':
-        navigation.navigate('SettingsScreen');
-        break;
-      case 'Support':
-        navigation.navigate('SupportScreen');
-        break;
-      case 'Rewards':
-        navigation.navigate('RewardsScreen');
-        break;
-      case 'Community':
-        navigation.navigate('CommunityScreen');
-        break;
-      case 'Education':
-        navigation.navigate('EducationScreen');
-        break;
-      default:
-        navigation.goBack();
-        break;
-    }
-  };
+  switch (action) {
+    case 'SellWaste':
+    case 'SchedulePickup':
+      navigation.navigate('Main', { screen: 'SellWaste' });
+      break;
+    case 'Wallet':
+      navigation.navigate('Main', { screen: 'Wallet' });
+      break;
+    case 'Analytics':
+    case 'History':
+      navigation.navigate('Main', { screen: 'History' });
+      break;
+    case 'Profile':
+      navigation.navigate('Main', { screen: 'Profile' });
+      break;
+    case 'Support':
+      navigation.navigate('SupportScreen');
+      break;
+    case 'Rewards':
+      navigation.navigate('RewardScreen');
+      break;
+    case 'Community':
+      navigation.navigate('ChatScreen');
+      break;
+    case 'Education':
+      navigation.navigate('EducationScreen');
+      break;
+    default:
+      navigation.goBack();
+      break;
+  }
+};
+
 
   // All available actions for WasteWealth app users
   const allActions = [
@@ -86,7 +84,7 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
       icon: 'recycle-variant',
       screen: 'SellWaste',
       color: colors_custom.success,
-      iconBg: '#E8F5E8',
+      iconBg: theme.dark ? 'rgba(56, 142, 60, 0.2)' : '#E8F5E8',
       description: 'Turn your waste into cash',
     },
     {
@@ -94,7 +92,7 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
       icon: 'calendar-check',
       screen: 'SchedulePickup',
       color: colors_custom.secondary,
-      iconBg: '#E3F2FD',
+      iconBg: theme.dark ? 'rgba(25, 118, 210, 0.2)' : '#E3F2FD',
       description: 'Book a collection appointment',
     },
     {
@@ -102,7 +100,7 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
       icon: 'wallet-outline',
       screen: 'Wallet',
       color: colors_custom.accent,
-      iconBg: '#FFF3E0',
+      iconBg: theme.dark ? 'rgba(255, 111, 0, 0.2)' : '#FFF3E0',
       description: 'Check earnings & transactions',
     },
     {
@@ -110,7 +108,7 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
       icon: 'chart-line',
       screen: 'Analytics',
       color: colors_custom.warning,
-      iconBg: '#FFF8E1',
+      iconBg: theme.dark ? 'rgba(245, 124, 0, 0.2)' : '#FFF8E1',
       description: 'View your impact metrics',
     },
     {
@@ -118,7 +116,7 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
       icon: 'history',
       screen: 'History',
       color: colors_custom.secondary,
-      iconBg: '#E8EAF6',
+      iconBg: theme.dark ? 'rgba(63, 81, 181, 0.2)' : '#E8EAF6',
       description: 'Track past collections',
     },
     {
@@ -126,7 +124,7 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
       icon: 'account-circle',
       screen: 'Profile',
       color: colors_custom.primary,
-      iconBg: '#E8F5E8',
+      iconBg: theme.dark ? 'rgba(46, 125, 50, 0.2)' : '#E8F5E8',
       description: 'Manage account details',
     },
     {
@@ -134,7 +132,7 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
       icon: 'gift',
       screen: 'Rewards',
       color: '#E91E63',
-      iconBg: '#FCE4EC',
+      iconBg: theme.dark ? 'rgba(233, 30, 99, 0.2)' : '#FCE4EC',
       description: 'Redeem eco-friendly rewards',
     },
     {
@@ -142,7 +140,7 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
       icon: 'account-group',
       screen: 'Community',
       color: '#9C27B0',
-      iconBg: '#F3E5F5',
+      iconBg: theme.dark ? 'rgba(156, 39, 176, 0.2)' : '#F3E5F5',
       description: 'Connect with eco-warriors',
     },
     {
@@ -150,7 +148,7 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
       icon: 'school',
       screen: 'Education',
       color: '#FF5722',
-      iconBg: '#FBE9E7',
+      iconBg: theme.dark ? 'rgba(255, 87, 34, 0.2)' : '#FBE9E7',
       description: 'Learn sustainability tips',
     },
     {
@@ -158,7 +156,7 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
       icon: 'help-circle',
       screen: 'Support',
       color: colors_custom.accent,
-      iconBg: '#FFF3E0',
+      iconBg: theme.dark ? 'rgba(255, 111, 0, 0.2)' : '#FFF3E0',
       description: 'Get assistance anytime',
     },
   ];
@@ -221,7 +219,7 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
         ]}
       >
         <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
-          <Surface style={styles.actionCardSurface} elevation={3}>
+          <Surface style={[styles.actionCardSurface, { backgroundColor: colors_custom.surface }]} elevation={3}>
             <View style={[styles.actionIconContainer, { backgroundColor: action.iconBg }]}>
               <Avatar.Icon 
                 size={40} 
@@ -246,7 +244,10 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors_custom.background }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors_custom.surface} />
+      <StatusBar 
+        barStyle={theme.dark ? "light-content" : "dark-content"} 
+        backgroundColor={colors_custom.surface} 
+      />
       
       <Appbar.Header style={[styles.header, { backgroundColor: colors_custom.surface }]}>
         <Appbar.BackAction 
@@ -306,7 +307,7 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
             },
           ]}
         >
-          <Surface style={styles.footerCard} elevation={1}>
+          <Surface style={[styles.footerCard, { backgroundColor: colors_custom.surface }]} elevation={1}>
             <View style={styles.footerContent}>
               <Avatar.Icon
                 size={48}
@@ -377,7 +378,6 @@ const styles = StyleSheet.create({
   },
   actionCardSurface: {
     borderRadius: 16,
-    backgroundColor: 'white',
     overflow: 'hidden',
   },
   actionIconContainer: {
@@ -409,7 +409,6 @@ const styles = StyleSheet.create({
   },
   footerCard: {
     borderRadius: 16,
-    backgroundColor: 'white',
   },
   footerContent: {
     flexDirection: 'row',

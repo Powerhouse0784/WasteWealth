@@ -332,7 +332,7 @@ const EarningsScreen: React.FC = () => {
         >
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
             <Text variant="headlineLarge" style={styles.headerTitle}>
-              💰 WasteWealth Earnings
+              💰 Waste2Wealth Earnings
             </Text>
             <Text variant="bodyLarge" style={styles.headerSubtitle}>
               Transform waste into wealth sustainably

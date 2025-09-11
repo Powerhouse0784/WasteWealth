@@ -1,17 +1,33 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, StyleSheet, ScrollView, RefreshControl, Animated, Dimensions, TouchableOpacity, Platform, StatusBar, Image,
+  View,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  Dimensions,
+  TouchableOpacity,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import {
-  Text, useTheme, Avatar, Card, Surface, Divider,
+  Text,
+  useTheme,
+  Avatar,
+  Surface,
+  Divider,
 } from 'react-native-paper';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { useAuth } from '../../context/AuthContext';
 import { wasteAPI } from '../../services/api';
 import { formatCurrency } from '../../utils/calculations';
+import Animated, {
+  withSpring,
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+} from 'react-native-reanimated';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface DashboardStats {
   totalWaste: number;
@@ -35,14 +51,7 @@ interface PickupData {
 const UserDashboardScreen: React.FC = ({ navigation }: any) => {
   const { colors } = useTheme();
   const { user } = useAuth();
-  
-  // Animation refs
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const headerScale = useRef(new Animated.Value(0.9)).current;
-  const cardStagger = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  
+
   // State
   const [stats, setStats] = useState<DashboardStats>({
     totalWaste: 0,
@@ -54,23 +63,25 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedTimeframe, setSelectedTimeframe] = useState('month');
+  const theme = useTheme();
 
-  // Professional color scheme
-  const colors_custom = {
-    primary: '#2E7D32',
-    secondary: '#1976D2',
-    accent: '#FF6F00',
+  // Theme colors
+  const themeColors = {
+    primary: colors.primary,
+    secondary: colors.secondary || '#1976D2',
+    accent: colors.tertiary || '#FF6F00',
     success: '#388E3C',
     warning: '#F57C00',
-    error: '#D32F2F',
-    surface: '#FFFFFF',
-    background: '#F8F9FA',
-    text: '#212121',
-    textSecondary: '#757575',
-    border: '#E0E0E0',
+    error: colors.error,
+    surface: colors.surface,
+    background: colors.background,
+    text: colors.onBackground,
+    textSecondary: colors.onSurfaceVariant,
+    border: colors.outline,
+    surfaceVariant: colors.surfaceVariant,
   };
 
-  // Data for different timeframes
+  // Data for timeframes
   const getStatsForTimeframe = (timeframe: string): DashboardStats => {
     const statsData = {
       week: {
@@ -90,97 +101,25 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
         totalEarnings: 3650,
         co2Saved: 750,
         treesSaved: 82,
-      }
+      },
     };
     return statsData[timeframe as keyof typeof statsData] || statsData.month;
-  };
-
-  const startAnimations = () => {
-    // Pulse animation for interactive elements
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.02,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // Main entry animations
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(headerScale, {
-        toValue: 1,
-        tension: 100,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-      Animated.timing(cardStagger, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-    ]).start();
   };
 
   const loadDashboardData = async (timeframe?: string) => {
     try {
       const pickupsResponse = await wasteAPI.getPickupHistory();
-      
       const timeframeStats = getStatsForTimeframe(timeframe || selectedTimeframe);
-      
       setStats(timeframeStats);
       setRecentPickups(pickupsResponse?.data?.pickups?.slice(0, 5) || []);
-      animateStatsCountUp(timeframeStats);
-      
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       const fallbackStats = getStatsForTimeframe(timeframe || selectedTimeframe);
       setStats(fallbackStats);
-      animateStatsCountUp(fallbackStats);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  const animateStatsCountUp = (finalStats: DashboardStats) => {
-    const duration = 1500;
-    const frames = 60;
-    let frame = 0;
-    
-    const interval = setInterval(() => {
-      frame++;
-      const progress = frame / frames;
-      const easeProgress = 1 - Math.pow(1 - progress, 2);
-      
-      setStats({
-        totalWaste: Math.floor(finalStats.totalWaste * easeProgress),
-        totalEarnings: Math.floor(finalStats.totalEarnings * easeProgress),
-        co2Saved: Math.floor(finalStats.co2Saved * easeProgress),
-        treesSaved: Math.floor(finalStats.treesSaved * easeProgress),
-      });
-      
-      if (frame >= frames) {
-        clearInterval(interval);
-        setStats(finalStats);
-      }
-    }, duration / frames);
   };
 
   const handleTimeframeChange = (timeframe: string) => {
@@ -190,7 +129,6 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
 
   useEffect(() => {
     loadDashboardData();
-    startAnimations();
   }, []);
 
   const onRefresh = () => {
@@ -202,13 +140,13 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
     switch (action) {
       case 'SellWaste':
       case 'SchedulePickup':
-        navigation.navigate('SellWaste');;
+        navigation.navigate('SellWaste');
         break;
       case 'Wallet':
-        navigation.navigate('Wallet');;
+        navigation.navigate('Wallet');
         break;
       case 'Analytics':
-        navigation.navigate('History');;
+        navigation.navigate('History');
         break;
       default:
         break;
@@ -224,29 +162,29 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
       label: 'Sell Waste',
       icon: 'recycle-variant',
       screen: 'SellWaste',
-      color: colors_custom.success,
-      iconBg: '#E8F5E8',
+      color: themeColors.success,
+      iconBg: colors.primaryContainer,
     },
     {
       label: 'Schedule Pickup',
       icon: 'calendar-check',
       screen: 'SchedulePickup',
-      color: colors_custom.secondary,
-      iconBg: '#E3F2FD',
+      color: themeColors.secondary,
+      iconBg: colors.secondaryContainer,
     },
     {
       label: 'My Wallet',
       icon: 'wallet-outline',
       screen: 'Wallet',
-      color: colors_custom.accent,
-      iconBg: '#FFF3E0',
+      color: themeColors.accent,
+      iconBg: colors.tertiaryContainer,
     },
     {
       label: 'Analytics',
       icon: 'chart-line',
       screen: 'Analytics',
-      color: colors_custom.warning,
-      iconBg: '#FFF8E1',
+      color: themeColors.warning,
+      iconBg: colors.surfaceVariant,
     },
   ];
 
@@ -256,58 +194,69 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
     { label: 'Quarter', value: 'quarter' },
   ];
 
-  const StatCard = ({ icon, value, label, color, delay = 0 }: any) => {
-    const cardAnim = useRef(new Animated.Value(0)).current;
-    const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  // ----- OPACITY ANIMATIONS -----
 
-    useEffect(() => {
-      Animated.sequence([
-        Animated.delay(delay),
-        Animated.parallel([
-          Animated.timing(cardAnim, {
-            toValue: 1,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-          Animated.spring(scaleAnim, {
-            toValue: 1,
-            tension: 100,
-            friction: 8,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]).start();
-    }, []);
+  // Stat cards
+  const statOpacities = useRef([0, 1, 2, 3].map(() => useSharedValue(0))).current;
+  useEffect(() => {
+    statOpacities.forEach((op, idx) => {
+      op.value = withDelay(idx * 80, withTiming(1, { duration: 400 }));
+    });
+  }, [statOpacities]);
 
+  // Quick actions
+  const qaOpacities = useRef(quickActions.map(() => useSharedValue(0))).current;
+  useEffect(() => {
+    qaOpacities.forEach((op, idx) => {
+      op.value = withDelay(idx * 80, withTiming(1, { duration: 400 }));
+    });
+  }, [qaOpacities]);
+
+  // Progress cards
+  const pcOpacities = useRef([0, 1, 2].map(() => useSharedValue(0))).current;
+  useEffect(() => {
+    pcOpacities.forEach((op, idx) => {
+      op.value = withDelay(idx * 100, withTiming(1, { duration: 400 }));
+    });
+  }, [pcOpacities]);
+
+  // Recent pickups (reset every data change)
+  const recAnimOpacities = useRef([] as Animated.SharedValue<number>[]).current;
+  useEffect(() => {
+    recAnimOpacities.length = 0;
+    for (let i = 0; i < recentPickups.length; i++) {
+      recAnimOpacities[i] = useSharedValue(0);
+    }
+    recAnimOpacities.forEach((op, idx) => {
+      op.value = withDelay(idx * 100, withTiming(1, { duration: 400 }));
+    });
+    // eslint-disable-next-line
+  }, [recentPickups.length]);
+
+  // --- COMPONENTS ---
+
+  const StatCard = ({ icon, value, label, color, idx }: any) => {
+    const opacityAnim = useAnimatedStyle(() => ({
+      opacity: statOpacities[idx].value,
+    }), []);
     return (
-      <Animated.View
-        style={[
-          styles.statCard,
-          {
-            opacity: cardAnim,
-            transform: [
-              { scale: scaleAnim },
-              { translateY: cardAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }
-            ],
-          },
-        ]}
-      >
+      <Animated.View style={[styles.statCard, opacityAnim]}>
         <TouchableOpacity activeOpacity={0.7}>
-          <Surface style={styles.statCardSurface} elevation={2}>
+          <Surface style={[styles.statCardSurface, { backgroundColor: themeColors.surface }]} elevation={2}>
             <View style={styles.statCardContent}>
               <View style={[styles.statIconContainer, { backgroundColor: color }]}>
-                <Avatar.Icon 
-                  size={40} 
-                  icon={icon} 
-                  style={[styles.statIcon, { backgroundColor: color }]} 
+                <Avatar.Icon
+                  size={40}
+                  icon={icon}
+                  style={[styles.statIcon, { backgroundColor: color }]}
                   color="white"
                 />
               </View>
               <View style={styles.statTextContainer}>
-                <Text variant="headlineSmall" style={[styles.statValue, { color: colors_custom.text }]}>
+                <Text variant="headlineSmall" style={[styles.statValue, { color: themeColors.text }]}>
                   {value}
                 </Text>
-                <Text variant="bodyMedium" style={[styles.statLabel, { color: colors_custom.textSecondary }]}>
+                <Text variant="bodyMedium" style={[styles.statLabel, { color: themeColors.textSecondary }]}>
                   {label}
                 </Text>
               </View>
@@ -318,62 +267,46 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
     );
   };
 
-  const ActionCard = ({ action, index }: any) => {
-    const actionAnim = useRef(new Animated.Value(0)).current;
-    const pressAnim = useRef(new Animated.Value(1)).current;
-
-    useEffect(() => {
-      Animated.sequence([
-        Animated.delay(index * 100),
-        Animated.timing(actionAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }, []);
-
-    const handlePress = () => {
-      Animated.sequence([
-        Animated.timing(pressAnim, {
-          toValue: 0.95,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pressAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        handleNavigation(action.screen);
-      });
+  // ActionCard opacity only + press scale effect
+  const useScaleAnimation = () => {
+    const scale = useSharedValue(1);
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }],
+    }));
+    const onPressIn = () => {
+      scale.value = withSpring(0.95);
     };
-
+    const onPressOut = () => {
+      scale.value = withSpring(1);
+    };
+    return { animatedStyle, onPressIn, onPressOut };
+  };
+  const ActionCard = ({ action, idx }: any) => {
+    const { animatedStyle: scaleAnim, onPressIn, onPressOut } = useScaleAnimation();
+    const opacityAnim = useAnimatedStyle(() => ({
+      opacity: qaOpacities[idx].value,
+    }), []);
+    const handlePress = () => {
+      handleNavigation(action.screen);
+    };
     return (
-      <Animated.View
-        style={[
-          styles.actionCard,
-          {
-            opacity: actionAnim,
-            transform: [
-              { scale: pressAnim },
-              { translateY: actionAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }
-            ],
-          },
-        ]}
-      >
-        <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
-          <Surface style={styles.actionCardSurface} elevation={3}>
+      <Animated.View style={[styles.actionCard, opacityAnim, scaleAnim]}>
+        <TouchableOpacity
+          onPress={handlePress}
+          activeOpacity={0.8}
+          onPressIn={onPressIn}
+          onPressOut={onPressOut}
+        >
+          <Surface style={[styles.actionCardSurface, { backgroundColor: themeColors.surface }]} elevation={3}>
             <View style={[styles.actionIconContainer, { backgroundColor: action.iconBg }]}>
-              <Avatar.Icon 
-                size={35} 
-                icon={action.icon} 
-                style={[styles.actionIcon, { backgroundColor: action.color }]} 
+              <Avatar.Icon
+                size={35}
+                icon={action.icon}
+                style={[styles.actionIcon, { backgroundColor: action.color }]}
                 color="white"
               />
             </View>
-            <Text variant="labelLarge" style={[styles.actionText, { color: colors_custom.text }]}>
+            <Text variant="labelLarge" style={[styles.actionText, { color: themeColors.text }]}>
               {action.label}
             </Text>
           </Surface>
@@ -382,113 +315,91 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
     );
   };
 
-  const ProgressCard = ({ title, current, target, color }: any) => {
+  // ProgressCard
+  const ProgressCard = ({ title, current, target, color, idx }: any) => {
     const progress = (current / target) * 100;
-    const progressAnim = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-      Animated.timing(progressAnim, {
-        toValue: progress,
-        duration: 1500,
-        useNativeDriver: false,
-      }).start();
-    }, [progress]);
-
+    const opacityAnim = useAnimatedStyle(() => ({
+      opacity: pcOpacities[idx].value,
+    }), []);
     return (
-      <Surface style={styles.progressCard} elevation={1}>
-        <View style={styles.progressHeader}>
-          <Text variant="titleMedium" style={[styles.progressTitle, { color: colors_custom.text }]}>
-            {title}
+      <Animated.View style={[styles.progressCard, opacityAnim]}>
+        <Surface style={[styles.progressCard, { backgroundColor: themeColors.surface }]} elevation={1}>
+          <View style={styles.progressHeader}>
+            <Text variant="titleMedium" style={[styles.progressTitle, { color: themeColors.text }]}>
+              {title}
+            </Text>
+            <Text variant="titleSmall" style={[styles.progressPercentage, { color }]}>
+              {Math.round(progress)}%
+            </Text>
+          </View>
+          <Text variant="bodySmall" style={[styles.progressSubtitle, { color: themeColors.textSecondary }]}>
+            {current} of {target} completed
           </Text>
-          <Text variant="titleSmall" style={[styles.progressPercentage, { color }]}>
-            {Math.round(progress)}%
-          </Text>
-        </View>
-        <Text variant="bodySmall" style={[styles.progressSubtitle, { color: colors_custom.textSecondary }]}>
-          {current} of {target} completed
-        </Text>
-        <View style={styles.progressBarContainer}>
-          <View style={[styles.progressBarTrack, { backgroundColor: colors_custom.border }]} />
-          <Animated.View 
-            style={[
-              styles.progressBarFill,
-              { 
-                backgroundColor: color,
-                width: progressAnim.interpolate({
-                  inputRange: [0, 100],
-                  outputRange: ['0%', '100%'],
-                  extrapolate: 'clamp',
-                })
-              }
-            ]} 
-          />
-        </View>
-      </Surface>
+          <View style={styles.progressBarContainer}>
+            <View style={[styles.progressBarTrack, { backgroundColor: themeColors.border }]} />
+            <View
+              style={[
+                styles.progressBarFill,
+                {
+                  backgroundColor: color,
+                  width: `${progress}%`,
+                },
+              ]}
+            />
+          </View>
+        </Surface>
+      </Animated.View>
     );
   };
 
+  // --- RENDER ---
   return (
-    <View style={[styles.container, { backgroundColor: colors_custom.background }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors_custom.background} />
-      
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <StatusBar
+        barStyle={theme.dark ? 'light-content' : 'dark-content'}
+        backgroundColor={themeColors.background}
+      />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[colors_custom.primary]}
-            tintColor={colors_custom.primary}
-            progressBackgroundColor="white"
+            colors={[themeColors.primary]}
+            tintColor={themeColors.primary}
+            progressBackgroundColor={themeColors.surface}
           />
         }
       >
-        {/* Professional Header */}
-        <Animated.View
-          style={[
-            styles.header,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }, { scale: headerScale }],
-            },
-          ]}
-        >
+        {/* Header */}
+        <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.headerLeft}>
-              <Text variant="headlineLarge" style={[styles.welcomeText, { color: colors_custom.text }]}>
+              <Text variant="headlineLarge" style={[styles.welcomeText, { color: themeColors.text }]}>
                 Welcome back,
               </Text>
-              <Text variant="headlineSmall" style={[styles.nameText, { color: colors_custom.primary }]}>
+              <Text variant="headlineSmall" style={[styles.nameText, { color: themeColors.primary }]}>
                 {user?.name?.split(' ')[0] || 'User'}
               </Text>
-              <Text variant="bodyLarge" style={[styles.subtitleText, { color: colors_custom.textSecondary }]}>
+              <Text variant="bodyLarge" style={[styles.subtitleText, { color: themeColors.textSecondary }]}>
                 Let's make a positive environmental impact today
               </Text>
             </View>
-            <Animated.View style={[styles.avatarContainer, { transform: [{ scale: pulseAnim }] }]}>
-              <Surface style={styles.avatarSurface} elevation={4}>
-                <Avatar.Text 
-                  size={60} 
-                  label={user?.name?.charAt(0) || 'U'} 
-                  style={[styles.avatar, { backgroundColor: colors_custom.primary }]}
+            <View style={styles.avatarContainer}>
+              <Surface style={[styles.avatarSurface, { backgroundColor: themeColors.surface }]} elevation={4}>
+                <Avatar.Text
+                  size={60}
+                  label={user?.name?.charAt(0) || 'U'}
+                  style={[styles.avatar, { backgroundColor: themeColors.primary }]}
                   color="white"
                 />
               </Surface>
-            </Animated.View>
+            </View>
           </View>
-
-          {/* Professional Timeframe Selector */}
-          <Animated.View
-            style={[
-              styles.timeframeContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
-            <Surface style={styles.timeframeSurface} elevation={1}>
+          {/* Timeframe Selector */}
+          <View style={styles.timeframeContainer}>
+            <Surface style={[styles.timeframeSurface, { backgroundColor: themeColors.surface }]} elevation={1}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeframeScroll}>
                 {timeframes.map((timeframe) => (
                   <TouchableOpacity
@@ -496,33 +407,26 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
                     onPress={() => handleTimeframeChange(timeframe.value)}
                     style={[
                       styles.timeframeChip,
-                      { backgroundColor: selectedTimeframe === timeframe.value ? colors_custom.primary : 'transparent' }
+                      { backgroundColor: selectedTimeframe === timeframe.value ? themeColors.primary : 'transparent' },
                     ]}
                   >
-                    <Text style={[
-                      styles.timeframeText,
-                      { color: selectedTimeframe === timeframe.value ? 'white' : colors_custom.textSecondary }
-                    ]}>
+                    <Text
+                      style={[
+                        styles.timeframeText,
+                        { color: selectedTimeframe === timeframe.value ? colors.onPrimary : themeColors.textSecondary },
+                      ]}
+                    >
                       {timeframe.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             </Surface>
-          </Animated.View>
-        </Animated.View>
-
-        {/* Stats Overview */}
-        <Animated.View
-          style={[
-            styles.statsContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <Text variant="headlineSmall" style={[styles.sectionTitle, { color: colors_custom.text }]}>
+          </View>
+        </View>
+        {/* Stats Overview with Opacity Animation */}
+        <View style={styles.statsContainer}>
+          <Text variant="headlineSmall" style={[styles.sectionTitle, { color: themeColors.text }]}>
             Your Impact Overview
           </Text>
           <View style={styles.statsGrid}>
@@ -530,63 +434,53 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
               icon="delete-variant"
               value={`${stats.totalWaste}kg`}
               label="Waste Recycled"
-              color={colors_custom.success}
-              delay={0}
+              color={themeColors.success}
+              idx={0}
             />
             <StatCard
               icon="currency-usd"
               value={formatCurrency(stats.totalEarnings)}
               label="Total Earned"
-              color={colors_custom.secondary}
-              delay={150}
+              color={themeColors.secondary}
+              idx={1}
             />
             <StatCard
               icon="leaf"
               value={`${stats.co2Saved}kg`}
               label="CO₂ Reduced"
-              color={colors_custom.warning}
-              delay={300}
+              color={themeColors.warning}
+              idx={2}
             />
             <StatCard
               icon="tree"
               value={stats.treesSaved.toString()}
               label="Trees Equivalent"
-              color={colors_custom.success}
-              delay={450}
+              color={themeColors.success}
+              idx={3}
             />
           </View>
-        </Animated.View>
-
+        </View>
         {/* Main Content */}
-        <Animated.View
-          style={[
-            styles.mainContent,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          {/* Quick Actions */}
+        <View style={styles.mainContent}>
+          {/* Quick Actions with Opacity Animation */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text variant="headlineSmall" style={[styles.sectionTitle, { color: colors_custom.text }]}>
+              <Text variant="headlineSmall" style={[styles.sectionTitle, { color: themeColors.text }]}>
                 Quick Actions
               </Text>
               <TouchableOpacity onPress={handleSeeAllActions}>
-                <Text style={[styles.seeAllText, { color: colors_custom.primary }]}>See All</Text>
+                <Text style={[styles.seeAllText, { color: themeColors.primary }]}>See All</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.actionsGrid}>
-              {quickActions.map((action, index) => (
-                <ActionCard key={action.label} action={action} index={index} />
+              {quickActions.map((action, idx) => (
+                <ActionCard key={action.label} action={action} idx={idx} />
               ))}
             </View>
           </View>
-
-          {/* Environmental Goals */}
+          {/* Environmental Goals with Opacity Animation */}
           <View style={styles.section}>
-            <Text variant="headlineSmall" style={[styles.sectionTitle, { color: colors_custom.text }]}>
+            <Text variant="headlineSmall" style={[styles.sectionTitle, { color: themeColors.text }]}>
               Environmental Goals
             </Text>
             <View style={styles.progressContainer}>
@@ -594,97 +488,93 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
                 title="Monthly Recycling Target"
                 current={50}
                 target={300}
-                color={colors_custom.success}
+                color={themeColors.success}
+                idx={0}
               />
               <ProgressCard
                 title="Carbon Footprint Reduction"
                 current={1850}
                 target={2000}
-                color={colors_custom.secondary}
+                color={themeColors.secondary}
+                idx={1}
               />
               <ProgressCard
                 title="Community Impact Score"
                 current={78}
                 target={100}
-                color={colors_custom.warning}
+                color={themeColors.warning}
+                idx={2}
               />
             </View>
           </View>
-
-          {/* Recent Activity */}
+          {/* Recent Activity with Opacity Animation */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text variant="headlineSmall" style={[styles.sectionTitle, { color: colors_custom.text }]}>
+              <Text variant="headlineSmall" style={[styles.sectionTitle, { color: themeColors.text }]}>
                 Recent Activity
               </Text>
               <TouchableOpacity>
-                <Text style={[styles.seeAllText, { color: colors_custom.primary }]}>View All</Text>
+                <Text style={[styles.seeAllText, { color: themeColors.primary }]}>View All</Text>
               </TouchableOpacity>
             </View>
-            
             {recentPickups.length === 0 ? (
-              <Surface style={styles.emptyCard} elevation={1}>
+              <Surface style={[styles.emptyCard, { backgroundColor: themeColors.surface }]} elevation={1}>
                 <View style={styles.emptyContent}>
                   <Avatar.Icon
                     size={60}
                     icon="history"
-                    style={[styles.emptyIcon, { backgroundColor: colors_custom.border }]}
-                    color={colors_custom.textSecondary}
+                    style={[styles.emptyIcon, { backgroundColor: themeColors.surfaceVariant }]}
+                    color={themeColors.textSecondary}
                   />
-                  <Text variant="titleLarge" style={[styles.emptyTitle, { color: colors_custom.text }]}>
+                  <Text variant="titleLarge" style={[styles.emptyTitle, { color: themeColors.text }]}>
                     No Recent Activity
                   </Text>
-                  <Text variant="bodyLarge" style={[styles.emptySubtitle, { color: colors_custom.textSecondary }]}>
+                  <Text variant="bodyLarge" style={[styles.emptySubtitle, { color: themeColors.textSecondary }]}>
                     Your sustainability journey starts here!
                   </Text>
                 </View>
               </Surface>
             ) : (
-              recentPickups.map((pickup, index) => (
-                <Animated.View
-                  key={pickup.id || index}
-                  style={[
-                    styles.pickupCard,
-                    {
-                      opacity: cardStagger,
-                      transform: [
-                        { translateY: cardStagger.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }
-                      ],
-                    }
-                  ]}
-                >
-                  <Surface style={styles.pickupCardSurface} elevation={2}>
-                    <View style={styles.pickupHeader}>
-                      <View style={styles.pickupInfo}>
-                        <Text variant="titleLarge" style={[styles.pickupDate, { color: colors_custom.text }]}>
-                          {new Date(pickup.date).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric',
-                            weekday: 'short'
-                          })}
-                        </Text>
-                        <Text variant="bodyMedium" style={[styles.pickupStatus, { color: colors_custom.success }]}>
-                          {pickup.status} ✓
-                        </Text>
+              recentPickups.map((pickup, idx) => {
+                const opacityAnim = useAnimatedStyle(() => ({
+                  opacity: recAnimOpacities[idx]?.value || 1,
+                }), []);
+                return (
+                  <Animated.View
+                    key={pickup.id || idx}
+                    style={[styles.pickupCard, opacityAnim]}
+                  >
+                    <Surface style={[styles.pickupCardSurface, { backgroundColor: themeColors.surface }]} elevation={2}>
+                      <View style={styles.pickupHeader}>
+                        <View style={styles.pickupInfo}>
+                          <Text variant="titleLarge" style={[styles.pickupDate, { color: themeColors.text }]}>
+                            {new Date(pickup.date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              weekday: 'short',
+                            })}
+                          </Text>
+                          <Text variant="bodyMedium" style={[styles.pickupStatus, { color: themeColors.success }]}>
+                            {pickup.status} ✓
+                          </Text>
+                        </View>
+                        <Surface style={[styles.amountBadge, { backgroundColor: themeColors.primary }]} elevation={1}>
+                          <Text variant="titleMedium" style={[styles.amount, { color: colors.onPrimary }]}>
+                            {formatCurrency(pickup.totalAmount)}
+                          </Text>
+                        </Surface>
                       </View>
-                      <Surface style={[styles.amountBadge, { backgroundColor: colors_custom.primary }]} elevation={1}>
-                        <Text variant="titleMedium" style={styles.amount}>
-                          {formatCurrency(pickup.totalAmount)}
-                        </Text>
-                      </Surface>
-                    </View>
-                    <Divider style={styles.divider} />
-                    <Text variant="bodyLarge" style={[styles.wasteTypes, { color: colors_custom.textSecondary }]}>
-                      {pickup.wasteTypes?.map((w: any) => 
-                        `${w.quantity}${w.unit} ${w.name}`
-                      ).join(' • ')}
-                    </Text>
-                  </Surface>
-                </Animated.View>
-              ))
+                      <Divider style={[styles.divider, { backgroundColor: themeColors.border }]} />
+                      <Text variant="bodyLarge" style={[styles.wasteTypes, { color: themeColors.textSecondary }]}>
+                        {pickup.wasteTypes?.map((w: any) => `${w.quantity}${w.unit} ${w.name}`).join(' • ')}
+                      </Text>
+                    </Surface>
+                  </Animated.View>
+                );
+              })
             )}
           </View>
-        </Animated.View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -729,7 +619,6 @@ const styles = StyleSheet.create({
   },
   avatarSurface: {
     borderRadius: 35,
-    backgroundColor: 'white',
   },
   avatar: {
     margin: 5,
@@ -739,7 +628,6 @@ const styles = StyleSheet.create({
   },
   timeframeSurface: {
     borderRadius: 25,
-    backgroundColor: 'white',
   },
   timeframeScroll: {
     paddingVertical: 8,
@@ -774,7 +662,6 @@ const styles = StyleSheet.create({
   },
   statCardSurface: {
     borderRadius: 16,
-    backgroundColor: 'white',
   },
   statCardContent: {
     padding: 16,
@@ -828,7 +715,6 @@ const styles = StyleSheet.create({
   },
   actionCardSurface: {
     borderRadius: 16,
-    backgroundColor: 'white',
   },
   actionIconContainer: {
     alignItems: 'center',
@@ -851,7 +737,6 @@ const styles = StyleSheet.create({
   },
   progressCard: {
     borderRadius: 16,
-    backgroundColor: 'white',
     padding: 16,
   },
   progressHeader: {
@@ -893,7 +778,6 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     borderRadius: 16,
-    backgroundColor: 'white',
   },
   emptyContent: {
     padding: 40,
@@ -916,7 +800,6 @@ const styles = StyleSheet.create({
   },
   pickupCardSurface: {
     borderRadius: 16,
-    backgroundColor: 'white',
   },
   pickupHeader: {
     flexDirection: 'row',
@@ -942,7 +825,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   amount: {
-    color: 'white',
     fontWeight: 'bold',
   },
   divider: {

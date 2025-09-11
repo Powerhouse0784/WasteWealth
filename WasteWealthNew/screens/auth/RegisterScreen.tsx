@@ -247,7 +247,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               </LinearGradient>
             </View>
             <Text variant="headlineLarge" style={styles.appTitle}>
-              WasteWealth
+              Waste2Wealth
             </Text>
             <Text variant="bodyLarge" style={styles.subtitle}>
               Turn your waste into wealth

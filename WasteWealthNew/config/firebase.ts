@@ -9,7 +9,7 @@ import { Platform } from 'react-native';
 
 // Your Firebase config object
 const firebaseConfig = {
-  apiKey: "AIzaSyAjv5iTU5XYn4GuCKjMg9jofWAwMA_8brY",
+  apiKey: "",
   authDomain: "wastewealth-14e1e.firebaseapp.com",
   projectId: "wastewealth-14e1e",
   storageBucket: "wastewealth-14e1e.appspot.com",

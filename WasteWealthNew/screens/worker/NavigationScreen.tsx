@@ -285,7 +285,7 @@ const NavigationScreen: React.FC<Props> = ({ navigation, route }) => {
           />
           <View style={styles.headerTitle}>
             <Text variant="titleMedium" style={[styles.headerText, { color: colors.primary }]}>
-              WasteWealth Navigation
+              Waste2Wealth Navigation
             </Text>
             <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
               Pickup Route

@@ -232,7 +232,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               </LinearGradient>
             </View>
             <Text variant="headlineLarge" style={styles.appTitle}>
-              WasteWealth
+              Waste2Wealth
             </Text>
             <Text variant="bodyLarge" style={styles.subtitle}>
               Welcome back!

@@ -55,7 +55,7 @@ interface QuickAction {
 }
 
 const WalletScreen: React.FC = () => {
-  const { colors } = useTheme();
+  const { colors, dark } = useTheme();
   const { user } = useAuth();
   
   // State
@@ -77,6 +77,29 @@ const WalletScreen: React.FC = () => {
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const balanceCountAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+
+  // Theme-aware colors
+  const themeColors = {
+    background: colors.background,
+    surface: colors.surface,
+    text: colors.onSurface,
+    textSecondary: colors.onSurfaceVariant,
+    primary: colors.primary,
+    accent: '#10B981',
+    error: '#EF4444',
+    warning: '#F59E0B',
+    success: '#10B981',
+    cardBackground: dark ? '#1A1D29' : '#FFFFFF',
+    gradientStart: dark ? '#1a1a2e' : '#667eea',
+    gradientMiddle: dark ? '#16213e' : '#764ba2',
+    gradientEnd: dark ? '#0f3460' : '#667eea',
+    decorativeCircle: dark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.15)',
+    balanceText: dark ? '#fff' : '#000',
+    balanceSubtext: dark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+    performanceBar: dark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+    transactionItem: dark ? '#242938' : '#F8F9FA',
+    emptyStateIcon: dark ? '#242938' : '#E5E7EB',
+  };
 
   useEffect(() => {
     loadWalletData();
@@ -197,15 +220,15 @@ const WalletScreen: React.FC = () => {
   };
 
   const getTransactionColor = (type: string): string => {
-    return type === 'credit' ? '#10B981' : '#EF4444';
+    return type === 'credit' ? themeColors.success : themeColors.error;
   };
 
   const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'completed': return '#10B981';
-      case 'pending': return '#F59E0B';
-      case 'failed': return '#EF4444';
-      default: return '#6B7280';
+      case 'completed': return themeColors.success;
+      case 'pending': return themeColors.warning;
+      case 'failed': return themeColors.error;
+      default: return themeColors.textSecondary;
     }
   };
 
@@ -221,39 +244,47 @@ const WalletScreen: React.FC = () => {
     >
       <Surface style={styles.balanceCard} elevation={0}>
         <LinearGradient
-          colors={['#1a1a2e', '#16213e', '#0f3460']}
+          colors={[themeColors.gradientStart, themeColors.gradientMiddle, themeColors.gradientEnd]}
           style={styles.balanceGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
           {/* Decorative Elements */}
-          <View style={styles.decorativeCircle1} />
-          <View style={styles.decorativeCircle2} />
-          <View style={styles.decorativeCircle3} />
+          <View style={[styles.decorativeCircle1, { backgroundColor: themeColors.decorativeCircle }]} />
+          <View style={[styles.decorativeCircle2, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]} />
+          <View style={[styles.decorativeCircle3, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]} />
           
-          <BlurView intensity={20} style={styles.blurOverlay}>
+          <BlurView intensity={dark ? 20 : 80} style={styles.blurOverlay}>
             <View style={styles.balanceHeader}>
               <View style={styles.balanceInfo}>
-                <Text style={styles.balanceLabel}>Total Balance</Text>
+                <Text style={[styles.balanceLabel, { color: themeColors.balanceSubtext }]}>
+                  Total Balance
+                </Text>
                 <View style={styles.balanceAmountContainer}>
-                  <Animated.Text style={styles.balanceAmount}>
-                    {formatCurrency(balance)}
+                  <Animated.Text style={[styles.balanceAmount, { color: themeColors.balanceText }]}>
+                    {formatCurrency(0)}
                   </Animated.Text>
                   <TouchableOpacity style={styles.eyeButton}>
                     <IconButton 
                       icon="eye" 
-                      iconColor="rgba(255,255,255,0.7)" 
+                      iconColor={themeColors.balanceSubtext} 
                       size={20}
                     />
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.balanceSubtext}>Available for withdrawal</Text>
+                <Text style={[styles.balanceSubtext, { color: themeColors.balanceSubtext }]}>
+                  Available for withdrawal
+                </Text>
               </View>
               
-              <Surface style={styles.avatarContainer} elevation={4}>
+              <Surface style={[styles.avatarContainer, { backgroundColor: dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }]} elevation={4}>
                 <Avatar.Image 
                   size={60} 
-                  source={{ uri: user?.avatar || 'https://via.placeholder.com/60' }}
+                  source={
+                      user?.avatar
+                        ? { uri: user.avatar }
+                        : require('../../assets/images/avatar.png')
+                    }
                 />
                 <View style={styles.onlineIndicator} />
               </Surface>
@@ -261,12 +292,18 @@ const WalletScreen: React.FC = () => {
 
             {/* Performance Stats */}
             <View style={styles.performanceSection}>
-              <Text style={styles.performanceTitle}>This Month Performance</Text>
+              <Text style={[styles.performanceTitle, { color: themeColors.balanceText }]}>
+                This Month Performance
+              </Text>
               <View style={styles.performanceGrid}>
                 <View style={styles.performanceItem}>
-                  <Text style={styles.performanceValue}>{formatCurrency(stats.thisMonth)}</Text>
-                  <Text style={styles.performanceLabel}>Earnings</Text>
-                  <View style={styles.performanceIndicator}>
+                  <Text style={[styles.performanceValue, { color: themeColors.balanceText }]}>
+                    {formatCurrency(stats.thisMonth)}
+                  </Text>
+                  <Text style={[styles.performanceLabel, { color: themeColors.balanceSubtext }]}>
+                    Earnings
+                  </Text>
+                  <View style={[styles.performanceIndicator, { backgroundColor: themeColors.performanceBar }]}>
                     <Animated.View style={[
                       styles.performanceBar,
                       { width: progressAnim.interpolate({
@@ -278,9 +315,13 @@ const WalletScreen: React.FC = () => {
                 </View>
                 
                 <View style={styles.performanceItem}>
-                  <Text style={styles.performanceValue}>{stats.totalTransactions}</Text>
-                  <Text style={styles.performanceLabel}>Transactions</Text>
-                  <View style={styles.performanceIndicator}>
+                  <Text style={[styles.performanceValue, { color: themeColors.balanceText }]}>
+                    {stats.totalTransactions}
+                  </Text>
+                  <Text style={[styles.performanceLabel, { color: themeColors.balanceSubtext }]}>
+                    Transactions
+                  </Text>
+                  <View style={[styles.performanceIndicator, { backgroundColor: themeColors.performanceBar }]}>
                     <Animated.View style={[
                       styles.performanceBar,
                       { width: progressAnim.interpolate({
@@ -292,9 +333,13 @@ const WalletScreen: React.FC = () => {
                 </View>
                 
                 <View style={styles.performanceItem}>
-                  <Text style={styles.performanceValue}>{stats.recyclingImpact}kg</Text>
-                  <Text style={styles.performanceLabel}>Impact</Text>
-                  <View style={styles.performanceIndicator}>
+                  <Text style={[styles.performanceValue, { color: themeColors.balanceText }]}>
+                    {stats.recyclingImpact}kg
+                  </Text>
+                  <Text style={[styles.performanceLabel, { color: themeColors.balanceSubtext }]}>
+                    Impact
+                  </Text>
+                  <View style={[styles.performanceIndicator, { backgroundColor: themeColors.performanceBar }]}>
                     <Animated.View style={[
                       styles.performanceBar,
                       { width: progressAnim.interpolate({
@@ -322,7 +367,7 @@ const WalletScreen: React.FC = () => {
         },
       ]}
     >
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
+      <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Quick Actions</Text>
       <View style={styles.quickActionsGrid}>
         {quickActions.map((action, index) => (
           <Animated.View
@@ -356,7 +401,9 @@ const WalletScreen: React.FC = () => {
                   />
                 </LinearGradient>
               </Surface>
-              <Text style={styles.quickActionLabel}>{action.title}</Text>
+              <Text style={[styles.quickActionLabel, { color: themeColors.text }]}>
+                {action.title}
+              </Text>
             </TouchableOpacity>
           </Animated.View>
         ))}
@@ -365,9 +412,9 @@ const WalletScreen: React.FC = () => {
   );
 
   const renderAnalytics = () => (
-    <Surface style={styles.analyticsCard} elevation={2}>
+    <Surface style={[styles.analyticsCard, { backgroundColor: themeColors.cardBackground }]} elevation={2}>
       <View style={styles.analyticsHeader}>
-        <Text style={styles.sectionTitle}>Analytics</Text>
+        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Analytics</Text>
         <View style={styles.periodSelector}>
           {(['week', 'month'] as const).map((period) => (
             <Chip
@@ -377,11 +424,16 @@ const WalletScreen: React.FC = () => {
               mode={selectedPeriod === period ? 'flat' : 'outlined'}
               style={[
                 styles.periodChip,
-                selectedPeriod === period && styles.selectedPeriodChip
+                { borderColor: themeColors.textSecondary },
+                selectedPeriod === period && { 
+                  backgroundColor: themeColors.accent,
+                  borderColor: themeColors.accent 
+                }
               ]}
               textStyle={[
                 styles.periodChipText,
-                selectedPeriod === period && styles.selectedPeriodChipText
+                { color: themeColors.textSecondary },
+                selectedPeriod === period && { color: '#fff' }
               ]}
             >
               {period.charAt(0).toUpperCase() + period.slice(1)}
@@ -391,33 +443,33 @@ const WalletScreen: React.FC = () => {
       </View>
 
       <View style={styles.analyticsContent}>
-        <View style={styles.analyticsItem}>
+        <View style={[styles.analyticsItem, { backgroundColor: themeColors.transactionItem }]}>
           <View style={styles.analyticsIcon}>
-            <Avatar.Icon size={40} icon="trending-up" color="#3a10b9ff" />
+            <Avatar.Icon size={40} icon="trending-up"/>
           </View>
           <View style={styles.analyticsInfo}>
-            <Text style={styles.analyticsValue}>+24.5%</Text>
-            <Text style={styles.analyticsLabel}>Growth Rate</Text>
+            <Text style={[styles.analyticsValue, { color: themeColors.text }]}>+24.5%</Text>
+            <Text style={[styles.analyticsLabel, { color: themeColors.textSecondary }]}>Growth Rate</Text>
           </View>
         </View>
 
-        <View style={styles.analyticsItem}>
+        <View style={[styles.analyticsItem, { backgroundColor: themeColors.transactionItem }]}>
           <View style={styles.analyticsIcon}>
-            <Avatar.Icon size={40} icon="recycle" color="#3a10b9ff" />
+            <Avatar.Icon size={40} icon="recycle" />
           </View>
           <View style={styles.analyticsInfo}>
-            <Text style={styles.analyticsValue}>156 kg</Text>
-            <Text style={styles.analyticsLabel}>Waste Processed</Text>
+            <Text style={[styles.analyticsValue, { color: themeColors.text }]}>156 kg</Text>
+            <Text style={[styles.analyticsLabel, { color: themeColors.textSecondary }]}>Waste Processed</Text>
           </View>
         </View>
 
-        <View style={styles.analyticsItem}>
+        <View style={[styles.analyticsItem, { backgroundColor: themeColors.transactionItem }]}>
           <View style={styles.analyticsIcon}>
-            <Avatar.Icon size={40} icon="leaf" color="3a10b9ff" />
+            <Avatar.Icon size={40} icon="leaf" />
           </View>
           <View style={styles.analyticsInfo}>
-            <Text style={styles.analyticsValue}>2.3 tons</Text>
-            <Text style={styles.analyticsLabel}>CO₂ Saved</Text>
+            <Text style={[styles.analyticsValue, { color: themeColors.text }]}>2.3 tons</Text>
+            <Text style={[styles.analyticsLabel, { color: themeColors.textSecondary }]}>CO₂ Saved</Text>
           </View>
         </View>
       </View>
@@ -425,22 +477,22 @@ const WalletScreen: React.FC = () => {
   );
 
   const renderTransactions = () => (
-    <Surface style={styles.transactionsCard} elevation={2}>
+    <Surface style={[styles.transactionsCard, { backgroundColor: themeColors.cardBackground }]} elevation={2}>
       <View style={styles.transactionsHeader}>
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Recent Activity</Text>
         <TouchableOpacity style={styles.viewAllButton}>
-          <Text style={styles.viewAllText}>View All</Text>
-          <IconButton icon="arrow-right" size={16} iconColor="#6B7280" />
+          <Text style={[styles.viewAllText, { color: themeColors.accent }]}>View All</Text>
+          <IconButton icon="arrow-right" size={16} iconColor={themeColors.textSecondary} />
         </TouchableOpacity>
       </View>
 
       {transactions.length === 0 ? (
         <View style={styles.emptyState}>
-          <Surface style={styles.emptyIcon} elevation={2}>
-            <Avatar.Icon size={64} icon="history" color="#80858eff" />
+          <Surface style={[styles.emptyIcon, { backgroundColor: themeColors.emptyStateIcon }]} elevation={2}>
+            <Avatar.Icon size={64} icon="history" color={themeColors.textSecondary} />
           </Surface>
-          <Text style={styles.emptyTitle}>No transactions yet</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptyTitle, { color: themeColors.text }]}>No transactions yet</Text>
+          <Text style={[styles.emptySubtitle, { color: themeColors.textSecondary }]}>
             Start selling waste to see your transaction history
           </Text>
         </View>
@@ -459,7 +511,10 @@ const WalletScreen: React.FC = () => {
                 }]
               }}
             >
-              <TouchableOpacity style={styles.transactionItem} activeOpacity={0.7}>
+              <TouchableOpacity 
+                style={[styles.transactionItem, { backgroundColor: themeColors.transactionItem }]} 
+                activeOpacity={0.7}
+              >
                 <Surface style={styles.transactionIconContainer} elevation={2}>
                   <Avatar.Icon
                     size={40}
@@ -473,7 +528,9 @@ const WalletScreen: React.FC = () => {
 
                 <View style={styles.transactionDetails}>
                   <View style={styles.transactionHeader}>
-                    <Text style={styles.transactionTitle}>{transaction.description}</Text>
+                    <Text style={[styles.transactionTitle, { color: themeColors.text }]}>
+                      {transaction.description}
+                    </Text>
                     <Chip
                       mode="outlined"
                       style={[
@@ -490,7 +547,7 @@ const WalletScreen: React.FC = () => {
                   </View>
 
                   <View style={styles.transactionFooter}>
-                    <Text style={styles.transactionDate}>
+                    <Text style={[styles.transactionDate, { color: themeColors.textSecondary }]}>
                       {transaction.date.toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -519,16 +576,20 @@ const WalletScreen: React.FC = () => {
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar 
+        barStyle={dark ? "light-content" : "dark-content"} 
+        backgroundColor="transparent" 
+        translucent 
+      />
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: themeColors.background }]}
         contentContainerStyle={styles.contentContainer}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#fff"
-            colors={['#10B981']}
+            tintColor={themeColors.accent}
+            colors={[themeColors.accent]}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -545,7 +606,6 @@ const WalletScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F1419',
   },
   contentContainer: {
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
@@ -573,7 +633,6 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
   },
   decorativeCircle2: {
     position: 'absolute',
@@ -582,7 +641,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
   },
   decorativeCircle3: {
     position: 'absolute',
@@ -591,7 +649,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
   },
   blurOverlay: {
     flex: 1,
@@ -609,7 +666,6 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 8,
     fontWeight: '500',
   },
@@ -621,7 +677,6 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#fff',
     letterSpacing: -1,
   },
   eyeButton: {
@@ -629,13 +684,11 @@ const styles = StyleSheet.create({
   },
   balanceSubtext: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
     fontWeight: '400',
   },
   avatarContainer: {
     borderRadius: 35,
     padding: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     position: 'relative',
   },
   onlineIndicator: {
@@ -657,7 +710,6 @@ const styles = StyleSheet.create({
   performanceTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
     marginBottom: 16,
   },
   performanceGrid: {
@@ -671,18 +723,15 @@ const styles = StyleSheet.create({
   performanceValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 4,
   },
   performanceLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
     marginBottom: 8,
   },
   performanceIndicator: {
     width: '80%',
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -720,18 +769,15 @@ const styles = StyleSheet.create({
   },
   quickActionIcon: {
     backgroundColor: 'transparent',
-  
   },
   quickActionLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#fff',
     textAlign: 'center',
   },
 
   // Analytics Card
   analyticsCard: {
-    backgroundColor: '#1A1D29',
     borderRadius: 20,
     padding: 20,
     marginBottom: 30,
@@ -748,18 +794,9 @@ const styles = StyleSheet.create({
   },
   periodChip: {
     backgroundColor: 'transparent',
-    borderColor: '#374151',
-  },
-  selectedPeriodChip: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
   },
   periodChipText: {
     fontSize: 12,
-    color: '#9CA3AF',
-  },
-  selectedPeriodChipText: {
-    color: '#fff',
   },
   analyticsContent: {
     gap: 16,
@@ -767,7 +804,6 @@ const styles = StyleSheet.create({
   analyticsItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#242938',
     padding: 16,
     borderRadius: 16,
   },
@@ -776,6 +812,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 8,
     marginRight: 16,
+    color: '#000dffff',
   },
   analyticsInfo: {
     flex: 1,
@@ -783,17 +820,14 @@ const styles = StyleSheet.create({
   analyticsValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 4,
   },
   analyticsLabel: {
     fontSize: 14,
-    color: '#9CA3AF',
   },
 
   // Transactions
   transactionsCard: {
-    backgroundColor: '#1A1D29',
     borderRadius: 20,
     padding: 20,
     marginBottom: 20,
@@ -810,7 +844,6 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 14,
-    color: '#10B981',
     fontWeight: '600',
   },
   emptyState: {
@@ -818,7 +851,6 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   emptyIcon: {
-    backgroundColor: '#242938',
     borderRadius: 40,
     padding: 16,
     marginBottom: 16,
@@ -826,12 +858,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#9CA3AF',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -841,7 +871,6 @@ const styles = StyleSheet.create({
   transactionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#242938',
     padding: 16,
     borderRadius: 16,
   },
@@ -861,7 +890,6 @@ const styles = StyleSheet.create({
   transactionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
     flex: 1,
     marginRight: 12,
   },
@@ -880,7 +908,6 @@ const styles = StyleSheet.create({
   },
   transactionDate: {
     fontSize: 12,
-    color: '#9CA3AF',
   },
   transactionAmount: {
     fontSize: 16,
@@ -891,7 +918,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 4,
   },
 });

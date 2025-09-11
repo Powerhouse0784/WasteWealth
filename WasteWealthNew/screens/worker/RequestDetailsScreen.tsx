@@ -30,6 +30,7 @@ import { workerAPI, wasteAPI } from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/calculations';
 import { BlurView } from '@react-native-community/blur';
 import LinearGradient from 'react-native-linear-gradient';
+import type { WorkerStackParamList } from '../../navigation/WorkerNavigator'; 
 
 type Props = StackScreenProps<WorkerStackParamList, 'RequestDetails'>;
 

@@ -61,7 +61,7 @@ interface Pickup {
 }
 
 const PickupHistoryScreen: React.FC = () => {
-  const { colors } = useTheme();
+  const { colors, dark } = useTheme();
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [pickups, setPickups] = useState<Pickup[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -82,6 +82,76 @@ const PickupHistoryScreen: React.FC = () => {
   const staggerAnimations = useRef(
     Array.from({ length: 10 }, () => new Animated.Value(0))
   ).current;
+
+  // Dynamic styles that respond to theme
+  const dynamicStyles = StyleSheet.create({
+    container: {
+      backgroundColor: colors.background,
+    },
+    backgroundElement1: {
+      backgroundColor: dark ? 'rgba(16, 185, 129, 0.02)' : 'rgba(16, 185, 129, 0.05)',
+    },
+    backgroundElement2: {
+      backgroundColor: dark ? 'rgba(59, 130, 246, 0.01)' : 'rgba(59, 130, 246, 0.03)',
+    },
+    title: {
+      color: colors.onBackground,
+    },
+    subtitle: {
+      color: colors.onSurfaceVariant,
+    },
+    statCard: {
+      backgroundColor: colors.surface,
+    },
+    statNumber: {
+      color: colors.onSurface,
+    },
+    statLabel: {
+      color: colors.onSurfaceVariant,
+    },
+    searchBar: {
+      backgroundColor: colors.surface,
+    },
+    searchInput: {
+      color: colors.onSurface,
+    },
+    cardSurface: {
+      backgroundColor: colors.surface,
+    },
+    cardDate: {
+      color: colors.onSurface,
+    },
+    relativeDate: {
+      color: colors.onSurfaceVariant,
+    },
+    sectionTitle: {
+      color: colors.onSurface,
+    },
+    wasteText: {
+      color: colors.onSurface,
+    },
+    wasteChip: {
+      backgroundColor: dark ? colors.surfaceVariant : '#F3F4F6',
+    },
+    workerName: {
+      color: colors.onSurface,
+    },
+    ratingText: {
+      color: colors.onSurfaceVariant,
+    },
+    emptyTitle: {
+      color: colors.onSurface,
+    },
+    emptySubtitle: {
+      color: colors.onSurfaceVariant,
+    },
+    emptyIcon: {
+      backgroundColor: dark ? colors.surfaceVariant : '#F3F4F6',
+    },
+    actionButton: {
+      backgroundColor: dark ? colors.surfaceVariant : '#F9FAFB',
+    },
+  });
 
   useEffect(() => {
     initializeAnimations();
@@ -194,25 +264,25 @@ const PickupHistoryScreen: React.FC = () => {
         gradient: ['#10B981', '#059669'],
         icon: 'check-circle',
         color: '#10B981',
-        bgColor: 'rgba(16, 185, 129, 0.1)',
+        bgColor: dark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
       },
       accepted: {
         gradient: ['#3B82F6', '#1D4ED8'],
         icon: 'clock',
         color: '#3B82F6',
-        bgColor: 'rgba(59, 130, 246, 0.1)',
+        bgColor: dark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.1)',
       },
       pending: {
         gradient: ['#F59E0B', '#D97706'],
         icon: 'alert-circle',
         color: '#F59E0B',
-        bgColor: 'rgba(245, 158, 11, 0.1)',
+        bgColor: dark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)',
       },
       cancelled: {
         gradient: ['#EF4444', '#DC2626'],
         icon: 'close-circle',
         color: '#EF4444',
-        bgColor: 'rgba(239, 68, 68, 0.1)',
+        bgColor: dark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)',
       },
     };
     return configs[status] || configs.pending;
@@ -291,18 +361,18 @@ const PickupHistoryScreen: React.FC = () => {
           },
         ]}
       >
-        <Surface style={[styles.cardSurface, { elevation: isSelected ? 12 : 4 }]} elevation={4}>
+        <Surface style={[styles.cardSurface, dynamicStyles.cardSurface, { elevation: isSelected ? 12 : 4 }]} elevation={4}>
           <LinearGradient
-            colors={['#FFFFFF', '#F8FAFC']}
+            colors={[colors.surface, dark ? colors.surfaceVariant : '#F8FAFC']}
             style={styles.cardGradient}
           >
             {/* Card Header */}
             <View style={styles.cardHeader}>
               <View style={styles.dateSection}>
-                <Text variant="headlineSmall" style={styles.cardDate}>
+                <Text variant="headlineSmall" style={[styles.cardDate, dynamicStyles.cardDate]}>
                   {formatDate(pickup.date)}
                 </Text>
-                <Text variant="bodySmall" style={styles.relativeDate}>
+                <Text variant="bodySmall" style={[styles.relativeDate, dynamicStyles.relativeDate]}>
                   {getRelativeTime(pickup.date)}
                 </Text>
               </View>
@@ -340,19 +410,19 @@ const PickupHistoryScreen: React.FC = () => {
 
             {/* Waste Types */}
             <View style={styles.wasteSection}>
-              <Text variant="bodyMedium" style={styles.sectionTitle}>
+              <Text variant="bodyMedium" style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>
                 Waste Items ({pickup.wasteTypes.length})
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.wasteScroll}>
                 {pickup.wasteTypes.map((waste, idx) => (
-                  <View key={idx} style={styles.wasteChip}>
+                  <View key={idx} style={[styles.wasteChip, dynamicStyles.wasteChip]}>
                     <Avatar.Icon
                       size={16}
                       icon="delete"
                       style={styles.wasteIcon}
-                      color="#6B7280"
+                      color={colors.onSurfaceVariant}
                     />
-                    <Text variant="bodySmall" style={styles.wasteText}>
+                    <Text variant="bodySmall" style={[styles.wasteText, dynamicStyles.wasteText]}>
                       {waste.quantity}{waste.unit} {waste.name}
                     </Text>
                   </View>
@@ -366,10 +436,11 @@ const PickupHistoryScreen: React.FC = () => {
                 <Avatar.Text 
                   size={32} 
                   label={pickup.workerName.charAt(0).toUpperCase()}
-                  style={styles.workerAvatar}
+                  style={[styles.workerAvatar, { backgroundColor: colors.surfaceVariant }]}
+                  color={colors.onSurfaceVariant}
                 />
                 <View style={styles.workerInfo}>
-                  <Text variant="bodyMedium" style={styles.workerName}>
+                  <Text variant="bodyMedium" style={[styles.workerName, dynamicStyles.workerName]}>
                     {pickup.workerName}
                   </Text>
                   {pickup.workerRating && (
@@ -380,7 +451,7 @@ const PickupHistoryScreen: React.FC = () => {
                         style={styles.starIcon}
                         color="#F59E0B"
                       />
-                      <Text variant="bodySmall" style={styles.ratingText}>
+                      <Text variant="bodySmall" style={[styles.ratingText, dynamicStyles.ratingText]}>
                         {pickup.workerRating}/5
                       </Text>
                     </View>
@@ -395,10 +466,11 @@ const PickupHistoryScreen: React.FC = () => {
               {
                 height: isSelected ? 60 : 0,
                 opacity: isSelected ? 1 : 0,
+                borderTopColor: dark ? colors.outline : '#F3F4F6',
               }
             ]}>
               <TouchableOpacity 
-                style={styles.actionButton}
+                style={[styles.actionButton, dynamicStyles.actionButton]}
                 onPress={() => handleViewDetails(pickup.id)}
               >
                 <Avatar.Icon size={20} icon="eye" style={styles.actionIcon} color="#3B82F6" />
@@ -407,7 +479,7 @@ const PickupHistoryScreen: React.FC = () => {
 
               {pickup.status === 'completed' && !pickup.userRating && (
                 <TouchableOpacity 
-                  style={styles.actionButton}
+                  style={[styles.actionButton, dynamicStyles.actionButton]}
                   onPress={() => handleRatePickup(pickup.id)}
                 >
                   <Avatar.Icon size={20} icon="star" style={styles.actionIcon} color="#F59E0B" />
@@ -417,7 +489,7 @@ const PickupHistoryScreen: React.FC = () => {
 
               {pickup.status === 'completed' && (
                 <TouchableOpacity 
-                  style={styles.actionButton}
+                  style={[styles.actionButton, dynamicStyles.actionButton]}
                   onPress={() => console.log('Download invoice')}
                 >
                   <Avatar.Icon size={20} icon="download" style={styles.actionIcon} color="#10B981" />
@@ -440,28 +512,28 @@ const PickupHistoryScreen: React.FC = () => {
   };
 
   interface FilterChipProps {
-  label: string;
-  value: string;
-  icon: string;
-  isActive: boolean;
-  onPress: () => void;
-}
-  const FilterChip: React.FC<FilterChipProps> = ({ label, value, icon, isActive, onPress }) => (
-  <TouchableOpacity onPress={onPress} style={styles.filterChipContainer}>
+    label: string;
+    value: string;
+    icon: string;
+    isActive: boolean;
+    onPress: () => void;
+  }
 
+  const FilterChip: React.FC<FilterChipProps> = ({ label, value, icon, isActive, onPress }) => (
+    <TouchableOpacity onPress={onPress} style={styles.filterChipContainer}>
       <LinearGradient
-        colors={isActive ? ['#10B981', '#059669'] : ['#F3F4F6', '#E5E7EB']}
+        colors={isActive ? ['#10B981', '#059669'] : [colors.surface, dark ? colors.surfaceVariant : '#E5E7EB']}
         style={styles.filterChip}
       >
         <Avatar.Icon
           size={18}
           icon={icon}
           style={styles.filterIcon}
-          color={isActive ? 'white' : '#6B7280'}
+          color={isActive ? 'white' : colors.onSurfaceVariant}
         />
         <Text style={[
           styles.filterLabel,
-          { color: isActive ? 'white' : '#374151' }
+          { color: isActive ? 'white' : colors.onSurface }
         ]}>
           {label}
         </Text>
@@ -470,16 +542,18 @@ const PickupHistoryScreen: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
+    <View style={[styles.container, dynamicStyles.container]}>
+      <StatusBar barStyle={dark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
       
       {/* Animated Background Elements */}
       <Animated.View style={[
         styles.backgroundElement1,
+        dynamicStyles.backgroundElement1,
         { transform: [{ translateY: parallaxTransform }, { rotate: rotationTransform }] }
       ]} />
       <Animated.View style={[
         styles.backgroundElement2,
+        dynamicStyles.backgroundElement2,
         { transform: [{ translateY: parallaxTransform.interpolate({ inputRange: [0, 50], outputRange: [0, -25] }) }] }
       ]} />
 
@@ -491,7 +565,8 @@ const PickupHistoryScreen: React.FC = () => {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={['#10B981']}
-            progressBackgroundColor="white"
+            progressBackgroundColor={colors.surface}
+            tintColor={colors.primary}
           />
         }
       >
@@ -508,26 +583,26 @@ const PickupHistoryScreen: React.FC = () => {
             }],
           }
         ]}>
-          <Text variant="headlineLarge" style={styles.title}>
-            WasteWealth History
+          <Text variant="headlineLarge" style={[styles.title, dynamicStyles.title]}>
+            Waste2Wealth History
           </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
+          <Text variant="bodyLarge" style={[styles.subtitle, dynamicStyles.subtitle]}>
             Track your environmental impact
           </Text>
           
           {/* Stats Cards */}
           <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-              <Text variant="headlineMedium" style={styles.statNumber}>
+            <View style={[styles.statCard, dynamicStyles.statCard]}>
+              <Text variant="headlineMedium" style={[styles.statNumber, dynamicStyles.statNumber]}>
                 {pickups.filter(p => p.status === 'completed').length}
               </Text>
-              <Text variant="bodySmall" style={styles.statLabel}>Completed</Text>
+              <Text variant="bodySmall" style={[styles.statLabel, dynamicStyles.statLabel]}>Completed</Text>
             </View>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, dynamicStyles.statCard]}>
               <Text variant="headlineMedium" style={[styles.statNumber, { color: '#10B981' }]}>
                 {formatCurrency(pickups.reduce((sum, p) => p.status === 'completed' ? sum + p.totalAmount : sum, 0))}
               </Text>
-              <Text variant="bodySmall" style={styles.statLabel}>Earned</Text>
+              <Text variant="bodySmall" style={[styles.statLabel, dynamicStyles.statLabel]}>Earned</Text>
             </View>
           </View>
         </Animated.View>
@@ -549,9 +624,10 @@ const PickupHistoryScreen: React.FC = () => {
             placeholder="Search by worker or waste type..."
             onChangeText={setSearchQuery}
             value={searchQuery}
-            style={styles.searchBar}
-            inputStyle={styles.searchInput}
-            iconColor="#6B7280"
+            style={[styles.searchBar, dynamicStyles.searchBar]}
+            inputStyle={[styles.searchInput, dynamicStyles.searchInput]}
+            iconColor={colors.onSurfaceVariant}
+            placeholderTextColor={colors.onSurfaceVariant}
           />
         </Animated.View>
 
@@ -611,13 +687,13 @@ const PickupHistoryScreen: React.FC = () => {
               <Avatar.Icon
                 size={80}
                 icon="history"
-                style={styles.emptyIcon}
-                color="#9CA3AF"
+                style={[styles.emptyIcon, dynamicStyles.emptyIcon]}
+                color={colors.onSurfaceVariant}
               />
-              <Text variant="headlineSmall" style={styles.emptyTitle}>
+              <Text variant="headlineSmall" style={[styles.emptyTitle, dynamicStyles.emptyTitle]}>
                 No pickups found
               </Text>
-              <Text variant="bodyLarge" style={styles.emptySubtitle}>
+              <Text variant="bodyLarge" style={[styles.emptySubtitle, dynamicStyles.emptySubtitle]}>
                 {filter === 'all'
                   ? 'Your pickup history will appear here'
                   : `No ${filter} pickups found`}
@@ -647,7 +723,6 @@ const PickupHistoryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   backgroundElement1: {
     position: 'absolute',
@@ -656,7 +731,6 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(16, 185, 129, 0.05)',
   },
   backgroundElement2: {
     position: 'absolute',
@@ -665,7 +739,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(59, 130, 246, 0.03)',
   },
   scrollView: {
     flex: 1,
@@ -676,12 +749,10 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   title: {
-    color: '#111827',
     fontWeight: 'bold',
     marginBottom: 4,
   },
   subtitle: {
-    color: '#6B7280',
     marginBottom: 20,
   },
   statsContainer: {
@@ -690,7 +761,6 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: 'white',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -701,11 +771,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   statNumber: {
-    color: '#111827',
     fontWeight: 'bold',
   },
   statLabel: {
-    color: '#6B7280',
     marginTop: 4,
   },
   searchContainer: {
@@ -713,12 +781,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   searchBar: {
-    backgroundColor: 'white',
     borderRadius: 12,
     elevation: 2,
   },
   searchInput: {
-    color: '#374151',
+    // Color set dynamically
   },
   filterContainer: {
     paddingHorizontal: 20,
@@ -755,7 +822,6 @@ const styles = StyleSheet.create({
   cardSurface: {
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: 'white',
   },
   cardGradient: {
     padding: 20,
@@ -770,12 +836,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardDate: {
-    color: '#111827',
     fontWeight: 'bold',
     marginBottom: 2,
   },
   relativeDate: {
-    color: '#6B7280',
     fontSize: 12,
   },
   statusBadge: {
@@ -813,7 +877,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    color: '#374151',
     fontWeight: '600',
     marginBottom: 8,
   },
@@ -823,7 +886,6 @@ const styles = StyleSheet.create({
   wasteChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
@@ -834,7 +896,6 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   wasteText: {
-    color: '#374151',
     fontSize: 11,
   },
   workerSection: {
@@ -843,14 +904,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   workerAvatar: {
-    backgroundColor: '#E5E7EB',
+    // backgroundColor set dynamically
   },
   workerInfo: {
     marginLeft: 12,
     flex: 1,
   },
   workerName: {
-    color: '#111827',
     fontWeight: '600',
   },
   ratingContainer: {
@@ -863,14 +923,12 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   ratingText: {
-    color: '#6B7280',
     fontSize: 12,
   },
   actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
     paddingTop: 16,
     overflow: 'hidden',
   },
@@ -880,7 +938,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: '#F9FAFB',
   },
   actionIcon: {
     backgroundColor: 'transparent',
@@ -895,17 +952,14 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyIcon: {
-    backgroundColor: '#F3F4F6',
     marginBottom: 16,
   },
   emptyTitle: {
-    color: '#111827',
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
   },
   emptySubtitle: {
-    color: '#6B7280',
     textAlign: 'center',
     lineHeight: 20,
   },

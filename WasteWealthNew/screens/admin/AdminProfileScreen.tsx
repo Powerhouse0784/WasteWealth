@@ -17,33 +17,35 @@ const AdminProfileScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
-    if (!user) {
-      Alert.alert('Error', 'User data is missing');
-      return;
-    }
-    try {
-      setLoading(true);
-      // Force non-optional id and other required props to exist
-      const updatedUser = {
-        id: user.id!,  // assert non-null or validate separately
-        role: user.role!,
-        profileCompleted: user.profileCompleted ?? false,
-        addresses: user.addresses ?? [],
-        walletBalance: user.walletBalance ?? 0,
-        createdAt: user.createdAt ?? new Date(),
-        ...formData,
-      };
-      
-      await updateUser(updatedUser);
-      setEditing(false);
-      Alert.alert('Success', 'Profile updated successfully');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!user) {
+    Alert.alert('Error', 'User data is missing');
+    return;
+  }
+  try {
+    setLoading(true);
+    // Add missing required 'uid' property here:
+    const updatedUser = {
+      uid: user.uid, // add this line; ensure user.uid exists
+      id: user.id!,  // keep existing required props
+      role: user.role!,
+      profileCompleted: user.profileCompleted ?? false,
+      addresses: user.addresses ?? [],
+      walletBalance: user.walletBalance ?? 0,
+      createdAt: user.createdAt ?? new Date(),
+      ...formData,
+    };
+    
+    await updateUser(updatedUser);
+    setEditing(false);
+    Alert.alert('Success', 'Profile updated successfully');
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    Alert.alert('Error', 'Failed to update profile');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleCancel = () => {
     setFormData({

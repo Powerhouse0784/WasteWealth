@@ -8,7 +8,6 @@ import {
   Animated, 
   StatusBar,
   Platform,
-  ImageBackground,
   SafeAreaView
 } from 'react-native';
 import { 
@@ -89,7 +88,7 @@ const wasteTypes: WasteType[] = [
 ];
 
 const SellWasteScreen: React.FC = () => {
-  const { colors } = useTheme();
+  const { colors, dark } = useTheme();
   const [selectedWasteType, setSelectedWasteType] = useState<WasteType | null>(null);
   const [estimatedValue, setEstimatedValue] = useState(0);
   const [currentStep, setCurrentStep] = useState(1);
@@ -164,6 +163,97 @@ const SellWasteScreen: React.FC = () => {
     { id: 'weekly', label: 'Weekly Pickup', subtitle: 'Regular collection', icon: 'repeat', gradient: ['#4facfe', '#00f2fe'] },
   ];
 
+  // Dynamic styles that respond to theme
+  const dynamicStyles = StyleSheet.create({
+    container: {
+      backgroundColor: colors.background,
+    },
+    header: {
+      backgroundColor: colors.surface,
+      borderBottomColor: dark ? colors.outline : '#f1f3f4',
+    },
+    headerTitle: {
+      color: colors.onSurface,
+    },
+    headerSubtitle: {
+      color: colors.onSurfaceVariant,
+    },
+    balanceCard: {
+      backgroundColor: dark ? colors.surfaceVariant : '#f8f9fa',
+    },
+    balanceLabel: {
+      color: colors.onSurfaceVariant,
+    },
+    balanceAmount: {
+      color: colors.primary,
+    },
+    progressText: {
+      color: colors.onSurfaceVariant,
+    },
+    progressBarContainer: {
+      backgroundColor: dark ? colors.outline : '#f1f3f4',
+    },
+    progressBar: {
+      backgroundColor: colors.primary,
+    },
+    sectionTitle: {
+      color: colors.onSurface,
+    },
+    sectionSubtitle: {
+      color: colors.onSurfaceVariant,
+    },
+    wasteTypeGradient: {
+      backgroundColor: dark ? colors.surfaceVariant : '#ffffff',
+    },
+    wasteTypeName: {
+      color: colors.onSurface,
+    },
+    wasteTypeDesc: {
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+      fontSize: 12,
+    },
+    previewTitle: {
+      color: 'white',
+    },
+    previewPrice: {
+      color: 'rgba(255,255,255,0.9)',
+    },
+    errorText: {
+      color: colors.error,
+    },
+    calculationLabel: {
+      color: 'rgba(255,255,255,0.9)',
+    },
+    calculationValue: {
+      color: 'white',
+    },
+    calculationFormula: {
+      color: 'rgba(255,255,255,0.8)',
+    },
+    continueButtonText: {
+      color: 'white',
+    },
+    pickupOptionTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+    pickupOptionSubtitle: {
+    fontSize: 12,
+    position: 'absolute',
+    left: 68,
+    bottom: 10,
+  },
+    submitButtonText: {
+      color: 'white',
+    },
+    submitButtonSubtext: {
+      color: 'rgba(255,255,255,0.9)',
+    },
+  });
+
   const WasteTypeCard = ({ wasteType, index }: { wasteType: WasteType; index: number }) => {
     const isSelected = selectedWasteType?.id === wasteType.id;
     const hoverAnim = useRef(new Animated.Value(1)).current;
@@ -217,7 +307,7 @@ const SellWasteScreen: React.FC = () => {
           ]}
         >
           <LinearGradient
-            colors={isSelected ? wasteType.gradient : ['#ffffff', '#f8f9fa']}
+            colors={isSelected ? wasteType.gradient : [colors.surface, dark ? colors.surfaceVariant : '#f8f9fa']}
             style={[styles.wasteTypeGradient, isSelected && styles.selectedCard]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -237,7 +327,7 @@ const SellWasteScreen: React.FC = () => {
               />
             </View>
             
-            <Text style={[styles.wasteTypeName, { color: isSelected ? 'white' : '#2c3e50' }]}>
+            <Text style={[dynamicStyles.wasteTypeName, { color: isSelected ? 'white' : colors.onSurface }]}>
               {wasteType.name}
             </Text>
             
@@ -245,7 +335,7 @@ const SellWasteScreen: React.FC = () => {
               ₹{wasteType.pricePerKg}/kg
             </Text>
             
-            <Text style={[styles.wasteTypeDesc, { color: isSelected ? 'rgba(255,255,255,0.8)' : '#7f8c8d' }]}>
+            <Text style={[dynamicStyles.wasteTypeDesc, { color: isSelected ? 'rgba(255,255,255,0.8)' : colors.onSurfaceVariant }]}>
               {wasteType.description}
             </Text>
           </LinearGradient>
@@ -260,7 +350,7 @@ const SellWasteScreen: React.FC = () => {
     return (
       <TouchableOpacity onPress={() => setSelectedPickupTime(option.id)} style={styles.pickupOptionContainer}>
         <LinearGradient
-          colors={isSelected ? option.gradient : ['#ffffff', '#f8f9fa']}
+          colors={isSelected ? option.gradient : [colors.surface, dark ? colors.surfaceVariant : '#f8f9fa']}
           style={[styles.pickupOptionCard, isSelected && styles.selectedPickupCard]}
         >
           {isSelected && (
@@ -278,11 +368,11 @@ const SellWasteScreen: React.FC = () => {
             />
           </View>
           
-          <Text style={[styles.pickupOptionTitle, { color: isSelected ? 'white' : '#2c3e50' }]}>
+          <Text style={[dynamicStyles.pickupOptionTitle, { color: isSelected ? 'white' : colors.onSurface }]}>
             {option.label}
           </Text>
           
-          <Text style={[styles.pickupOptionSubtitle, { color: isSelected ? 'rgba(255,255,255,0.8)' : '#7f8c8d' }]}>
+          <Text style={[dynamicStyles.pickupOptionSubtitle, { color: isSelected ? 'rgba(255,255,255,0.8)' : colors.onSurfaceVariant }]}>
             {option.subtitle}
           </Text>
         </LinearGradient>
@@ -291,30 +381,30 @@ const SellWasteScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <SafeAreaView style={[styles.container, dynamicStyles.container]}>
+      <StatusBar barStyle={dark ? "light-content" : "dark-content"} backgroundColor={colors.surface} />
       
       {/* Modern Header */}
-      <Animated.View style={[styles.header, { transform: [{ translateY: headerAnim }] }]}>
+      <Animated.View style={[styles.header, dynamicStyles.header, { transform: [{ translateY: headerAnim }] }]}>
         <View style={styles.headerContent}>
           <View>
-            <Text style={styles.headerTitle}>WasteWealth</Text>
-            <Text style={styles.headerSubtitle}>Transform waste into wealth</Text>
+            <Text style={[styles.headerTitle, dynamicStyles.headerTitle]}>Waste2Wealth</Text>
+            <Text style={[styles.headerSubtitle, dynamicStyles.headerSubtitle]}>Transform waste into wealth</Text>
           </View>
           
           <View style={styles.headerRight}>
-            <View style={styles.balanceCard}>
-              <Text style={styles.balanceLabel}>Your Balance</Text>
-              <Text style={styles.balanceAmount}>₹0</Text>
+            <View style={[styles.balanceCard, dynamicStyles.balanceCard]}>
+              <Text style={[styles.balanceLabel, dynamicStyles.balanceLabel]}>Your Balance</Text>
+              <Text style={[styles.balanceAmount, dynamicStyles.balanceAmount]}>₹0</Text>
             </View>
           </View>
         </View>
         
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>Step {currentStep} of 3</Text>
-          <View style={styles.progressBarContainer}>
-            <Animated.View style={[styles.progressBar, { width: progressAnim.interpolate({
+          <Text style={[styles.progressText, dynamicStyles.progressText]}>Step {currentStep} of 3</Text>
+          <View style={[styles.progressBarContainer, dynamicStyles.progressBarContainer]}>
+            <Animated.View style={[styles.progressBar, dynamicStyles.progressBar, { width: progressAnim.interpolate({
               inputRange: [0, 1],
               outputRange: ['0%', '100%'],
             }) }]} />
@@ -336,8 +426,8 @@ const SellWasteScreen: React.FC = () => {
           {currentStep >= 1 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Select Waste Type</Text>
-                <Text style={styles.sectionSubtitle}>Choose the type of waste you want to sell</Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>Select Waste Type</Text>
+                <Text style={[styles.sectionSubtitle, dynamicStyles.sectionSubtitle]}>Choose the type of waste you want to sell</Text>
               </View>
               
               <View style={styles.wasteTypesGrid}>
@@ -371,8 +461,8 @@ const SellWasteScreen: React.FC = () => {
                 {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
                   <View style={styles.formContainer}>
                     <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>Enter Quantity</Text>
-                      <Text style={styles.sectionSubtitle}>How much {selectedWasteType.name.toLowerCase()} do you have?</Text>
+                      <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>Enter Quantity</Text>
+                      <Text style={[styles.sectionSubtitle, dynamicStyles.sectionSubtitle]}>How much {selectedWasteType.name.toLowerCase()} do you have?</Text>
                     </View>
 
                     {/* Selected Waste Type Preview */}
@@ -385,8 +475,8 @@ const SellWasteScreen: React.FC = () => {
                           color="white"
                         />
                         <View style={styles.previewText}>
-                          <Text style={styles.previewTitle}>{selectedWasteType.name}</Text>
-                          <Text style={styles.previewPrice}>₹{selectedWasteType.pricePerKg}/kg</Text>
+                          <Text style={[styles.previewTitle, dynamicStyles.previewTitle]}>{selectedWasteType.name}</Text>
+                          <Text style={[styles.previewPrice, dynamicStyles.previewPrice]}>₹{selectedWasteType.pricePerKg}/kg</Text>
                         </View>
                       </LinearGradient>
                     </View>
@@ -403,9 +493,10 @@ const SellWasteScreen: React.FC = () => {
                             keyboardType="numeric"
                             error={touched.quantity && !!errors.quantity}
                             mode="outlined"
-                            style={styles.quantityInput}
-                            outlineColor="#e1e8ed"
-                            activeOutlineColor="#667eea"
+                            style={[styles.quantityInput, { backgroundColor: colors.surface }]}
+                            outlineColor={colors.outline}
+                            activeOutlineColor={colors.primary}
+                            textColor={colors.onSurface}
                           />
                         </View>
                         
@@ -417,15 +508,16 @@ const SellWasteScreen: React.FC = () => {
                             onBlur={handleBlur('unit')}
                             error={touched.unit && !!errors.unit}
                             mode="outlined"
-                            style={styles.unitInput}
-                            outlineColor="#e1e8ed"
-                            activeOutlineColor="#667eea"
+                            style={[styles.unitInput, { backgroundColor: colors.surface }]}
+                            outlineColor={colors.outline}
+                            activeOutlineColor={colors.primary}
+                            textColor={colors.onSurface}
                           />
                         </View>
                       </View>
                       
                       {touched.quantity && errors.quantity && (
-                        <Text style={styles.errorText}>{errors.quantity}</Text>
+                        <Text style={[styles.errorText, dynamicStyles.errorText]}>{errors.quantity}</Text>
                       )}
                     </View>
 
@@ -433,11 +525,11 @@ const SellWasteScreen: React.FC = () => {
                     {values.quantity && !errors.quantity && (
                       <Animated.View style={[styles.calculationCard, { transform: [{ scale: scaleAnim }] }]}>
                         <LinearGradient colors={['#667eea', '#764ba2']} style={styles.calculationGradient}>
-                          <Text style={styles.calculationLabel}>Estimated Earnings</Text>
-                          <Text style={styles.calculationValue}>
+                          <Text style={[styles.calculationLabel, dynamicStyles.calculationLabel]}>Estimated Earnings</Text>
+                          <Text style={[styles.calculationValue, dynamicStyles.calculationValue]}>
                             ₹{calculateValue(parseFloat(values.quantity)).toFixed(2)}
                           </Text>
-                          <Text style={styles.calculationFormula}>
+                          <Text style={[styles.calculationFormula, dynamicStyles.calculationFormula]}>
                             {values.quantity} kg × ₹{selectedWasteType.pricePerKg} = ₹{calculateValue(parseFloat(values.quantity)).toFixed(2)}
                           </Text>
                         </LinearGradient>
@@ -459,7 +551,7 @@ const SellWasteScreen: React.FC = () => {
                           : ['#667eea', '#764ba2']}
                         style={styles.continueGradient}
                       >
-                        <Text style={styles.continueButtonText}>Continue</Text>
+                        <Text style={[styles.continueButtonText, dynamicStyles.continueButtonText]}>Continue</Text>
                       </LinearGradient>
                     </TouchableOpacity>
                   </View>
@@ -480,8 +572,8 @@ const SellWasteScreen: React.FC = () => {
               ]}
             >
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Choose Pickup Option</Text>
-                <Text style={styles.sectionSubtitle}>When would you like us to collect your waste?</Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>Choose Pickup Option</Text>
+                <Text style={[styles.sectionSubtitle, dynamicStyles.sectionSubtitle]}>When would you like us to collect your waste?</Text>
               </View>
               
               <View style={styles.pickupOptionsContainer}>
@@ -503,8 +595,8 @@ const SellWasteScreen: React.FC = () => {
                   colors={!selectedPickupTime ? ['#bdc3c7', '#95a5a6'] : ['#27ae60', '#2ecc71']}
                   style={styles.submitGradient}
                 >
-                  <Text style={styles.submitButtonText}>Request Pickup</Text>
-                  <Text style={styles.submitButtonSubtext}>
+                  <Text style={[styles.submitButtonText, dynamicStyles.submitButtonText]}>Request Pickup</Text>
+                  <Text style={[styles.submitButtonSubtext, dynamicStyles.submitButtonSubtext]}>
                     {estimatedValue > 0 ? `Earn ₹${estimatedValue.toFixed(2)}` : 'Complete your request'}
                   </Text>
                 </LinearGradient>
@@ -520,15 +612,12 @@ const SellWasteScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
   },
   header: {
-    backgroundColor: '#ffffff',
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 10 : 20,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f3f4',
   },
   headerContent: {
     flexDirection: 'row',
@@ -539,19 +628,16 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#2c3e50',
     letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#7f8c8d',
     marginTop: 2,
   },
   headerRight: {
     alignItems: 'flex-end',
   },
   balanceCard: {
-    backgroundColor: '#f8f9fa',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -559,31 +645,26 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 12,
-    color: '#7f8c8d',
     marginBottom: 2,
   },
   balanceAmount: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#27ae60',
   },
   progressContainer: {
     marginTop: 10,
   },
   progressText: {
     fontSize: 12,
-    color: '#7f8c8d',
     marginBottom: 8,
   },
   progressBarContainer: {
     height: 4,
-    backgroundColor: '#f1f3f4',
     borderRadius: 2,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#667eea',
     borderRadius: 2,
   },
   scrollView: {
@@ -601,12 +682,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#2c3e50',
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#7f8c8d',
     lineHeight: 20,
   },
   wasteTypesGrid: {
@@ -665,22 +744,11 @@ const styles = StyleSheet.create({
   wasteIcon: {
     backgroundColor: 'transparent',
   },
-  wasteTypeName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
   wasteTypePrice: {
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: 4,
-  },
-  wasteTypeDesc: {
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 14,
   },
   formContainer: {
     width: '100%',
@@ -705,12 +773,10 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'white',
     marginBottom: 2,
   },
   previewPrice: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
   },
   inputSection: {
     marginBottom: 24,
@@ -726,13 +792,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   quantityInput: {
-    backgroundColor: '#ffffff',
+    // backgroundColor will be set dynamically
   },
   unitInput: {
-    backgroundColor: '#ffffff',
+    // backgroundColor will be set dynamically
   },
   errorText: {
-    color: '#e74c3c',
     fontSize: 12,
     marginTop: 8,
   },
@@ -752,18 +817,15 @@ const styles = StyleSheet.create({
   },
   calculationLabel: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
     marginBottom: 8,
   },
   calculationValue: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: 'white',
     marginBottom: 8,
   },
   calculationFormula: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
   },
   continueButton: {
     borderRadius: 12,
@@ -778,7 +840,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   continueButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -827,18 +888,6 @@ const styles = StyleSheet.create({
   pickupIcon: {
     backgroundColor: 'transparent',
   },
-  pickupOptionTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  pickupOptionSubtitle: {
-    fontSize: 12,
-    position: 'absolute',
-    left: 64,
-    bottom: 16,
-  },
   submitButton: {
     borderRadius: 16,
     overflow: 'hidden',
@@ -854,14 +903,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitButtonText: {
-    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   submitButtonSubtext: {
-    color: 'rgba(255,255,255,0.9)',
     fontSize: 14,
   },
 });
+
 export default SellWasteScreen;

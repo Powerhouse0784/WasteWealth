@@ -9,6 +9,10 @@ import PickupHistoryScreen from '../screens/user/PickupHistoryScreen';
 import WalletScreen from '../screens/user/WalletScreen';
 import ProfileScreen from '../screens/common/ProfileScreen';
 import AllActionScreen from '../screens/user/AllActionScreen';
+import RewardScreen from '../screens/user/RewardScreen';
+import ChatScreen from '../screens/user/ChatScreen';
+import EducationScreen from '../screens/user/EducationScreen';
+import SupportScreen from '../screens/user/SupportScreen';
 
 
 export type UserTabParamList = {
@@ -26,6 +30,10 @@ export type UserStackParamList = {
   AddressManagement: undefined;
   Notifications: undefined;
   AllActionScreen: undefined; 
+  RewardScreen: undefined;      
+  ChatScreen: undefined;         
+  EducationScreen: undefined;    
+  SupportScreen: undefined;
 };
 
 const Tab = createBottomTabNavigator<UserTabParamList>();
@@ -75,6 +83,10 @@ const UserNavigator: React.FC = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={UserTabs} />
       <Stack.Screen name="AllActionScreen" component={AllActionScreen} />
+      <Stack.Screen name="RewardScreen" component={RewardScreen} />
+      <Stack.Screen name="ChatScreen" component={ChatScreen} />
+      <Stack.Screen name="EducationScreen" component={EducationScreen} />
+      <Stack.Screen name="SupportScreen" component={SupportScreen} />
       {/* Other stack screens */}
     </Stack.Navigator>
   );
