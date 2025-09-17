@@ -9,7 +9,8 @@ import {
   TouchableOpacity,
   StatusBar,
   Platform,
-  FlatList
+  FlatList,
+  AppState
 } from 'react-native';
 import { 
   Text, 
@@ -21,12 +22,25 @@ import {
   Surface, 
   IconButton,
   Searchbar,
-  FAB
+  FAB,
+  Badge
 } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { workerAPI } from '../../services/api';
-import { formatCurrency, formatDistance } from '../../utils/calculations';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { formatCurrency, formatDistance, formatDateTime } from '../../utils/calculations';
+import { db, auth } from '../../config/firebase'; // Import auth from your config
+import { 
+  collection, 
+  onSnapshot, 
+  query, 
+  where, 
+  orderBy, 
+  updateDoc, 
+  doc,
+  getDocs
+} from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
+import NetInfo from '@react-native-community/netinfo';
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,16 +48,23 @@ interface PickupRequest {
   id: string;
   userId: string;
   userName: string;
+  userAddress: string;
   userRating: number;
-  wasteTypes: { name: string; quantity: number; unit: string }[];
-  totalAmount: number;
+  wasteItems: { 
+    wasteType: string; 
+    quantity: string; 
+    unit: string;
+    pricePerKg: number;
+  }[];
+  estimatedAmount: number;
+  pickupOption: 'instant' | 'scheduled' | 'daily';
+  scheduledDateTime: any;
+  status: 'pending' | 'accepted' | 'completed' | 'cancelled';
   distance: number;
-  address: string;
-  scheduledDate: string;
   urgency: 'low' | 'medium' | 'high';
-  imageUrl?: string;
-  estimatedWeight?: number;
-  preferredTime?: string;
+  createdAt: any;
+  workerAssigned: string | null;
+  completedAt: any | null;
 }
 
 interface WorkerStats {
@@ -51,6 +72,7 @@ interface WorkerStats {
   completedToday: number;
   earnings: number;
   rating: number;
+  pendingRequests: number;
 }
 
 const AvailableRequestsScreen: React.FC = () => {
@@ -60,21 +82,66 @@ const AvailableRequestsScreen: React.FC = () => {
     todayRequests: 0,
     completedToday: 0,
     earnings: 0,
-    rating: 4.8
+    rating: 4.8,
+    pendingRequests: 0
   });
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filterUrgency, setFilterUrgency] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('available');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const [newRequestsCount, setNewRequestsCount] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Animation values
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const newRequestAnim = useRef(new Animated.Value(0)).current;
+
+  // Refs for tracking
+  const lastRequestCount = useRef(0);
+  const appState = useRef(AppState.currentState);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      console.log('Not authenticated, skipping listener setup');
+      return;
+    }
+    isMounted.current = true;
+
+    
+    // Initialize authentication
+    const initializeAuth = async () => {
+      try {
+        await signInAnonymously(auth);
+        console.log('Worker signed in anonymously');
+        setIsAuthenticated(true);
+        setupRealTimeListener(); // Setup listener after auth
+      } catch (error) {
+        console.error('Worker anonymous sign-in failed:', error);
+        setIsAuthenticated(false);
+      }
+    };
+
+    // Check network connectivity
+    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
+      setIsOnline(state.isConnected ?? false);
+    });
+
+    // Listen for app state changes
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        loadRequests();
+      }
+      appState.current = nextAppState;
+    });
+
     // Entrance animations
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -90,7 +157,7 @@ const AvailableRequestsScreen: React.FC = () => {
     ]).start();
 
     // Pulse animation for stats
-    const pulseAnimation = Animated.loop(
+     const pulseAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.05,
@@ -106,22 +173,132 @@ const AvailableRequestsScreen: React.FC = () => {
     );
     pulseAnimation.start();
 
-    loadRequests();
+    // Initialize auth and setup listener
+    initializeAuth();
+
+    // Set up real-time listener
+    setupRealTimeListener();
+
+     return () => {
+      isMounted.current = false;
+      unsubscribeNetInfo();
+      subscription.remove();
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+    };
   }, []);
+
+  const setupRealTimeListener = () => {
+    // Clean up previous listener if exists
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+    }
+
+    const q = query(
+      collection(db, 'pickupRequests'),
+      where('status', '==', 'pending'),
+      orderBy('createdAt', 'desc')
+    );
+
+    // Set up real-time listener
+    unsubscribeRef.current = onSnapshot(q, 
+      (querySnapshot) => {
+        const requestsData: PickupRequest[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          requestsData.push({
+            id: doc.id,
+            ...data,
+            scheduledDateTime: data.scheduledDateTime?.toDate?.(),
+            createdAt: data.createdAt?.toDate?.(),
+            completedAt: data.completedAt?.toDate?.(),
+          } as PickupRequest);
+        });
+
+        // Check for new requests
+        if (requestsData.length > lastRequestCount.current) {
+          const newCount = requestsData.length - lastRequestCount.current;
+          setNewRequestsCount(newCount);
+          
+          Animated.sequence([
+            Animated.timing(newRequestAnim, {
+              toValue: 1,
+              duration: 500,
+              useNativeDriver: true,
+            }),
+            Animated.delay(2000),
+            Animated.timing(newRequestAnim, {
+              toValue: 0,
+              duration: 500,
+              useNativeDriver: true,
+            }),
+          ]).start(() => setNewRequestsCount(0));
+        }
+
+        lastRequestCount.current = requestsData.length;
+        setRequests(requestsData);
+        updateStats(requestsData);
+        setLoading(false);
+        setRefreshing(false);
+      }, 
+      (error) => {
+        console.error('Error in real-time listener:', error);
+        if (isMounted.current) {
+          setLoading(false);
+          setRefreshing(false);
+          
+          // If it's a permissions error, try to reauthenticate
+          if (error.code === 'permission-denied') {
+            console.log('Permissions error, attempting to reauthenticate...');
+            signInAnonymously(auth)
+              .then(() => {
+                console.log('Reauthenticated successfully');
+                setIsAuthenticated(true);
+                setupRealTimeListener(); // Retry setting up listener
+              })
+              .catch(authError => {
+                console.error('Reauthentication failed:', authError);
+              });
+          }
+        }
+      }
+    );
+  };
+
+  const updateStats = (requestsData: PickupRequest[]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const completedToday = requestsData.filter(req => 
+      req.status === 'completed' && 
+      req.completedAt && 
+      req.completedAt >= today
+    ).length;
+
+    const pendingRequests = requestsData.filter(req => 
+      req.status === 'pending'
+    ).length;
+
+    const totalEarnings = requestsData
+      .filter(req => req.status === 'completed')
+      .reduce((sum, req) => sum + req.estimatedAmount, 0);
+
+    setStats(prev => ({
+      ...prev,
+      todayRequests: requestsData.length,
+      completedToday,
+      earnings: totalEarnings,
+      pendingRequests
+    }));
+  };
 
   const loadRequests = async () => {
     try {
-      const [requestsResponse, statsResponse] = await Promise.all([
-        workerAPI.getAvailableRequests(),
-        workerAPI.getWorkerStats(),
-      ]);
-      setRequests(Array.isArray(requestsResponse?.data?.requests) ? requestsResponse.data.requests : []);
-      setStats(statsResponse.data.stats || stats);
+      setRefreshing(true);
+      // The real-time listener will handle the data update
     } catch (error) {
       console.error('Error loading requests:', error);
-      setRequests([]);
-    } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   };
@@ -140,85 +317,114 @@ const AvailableRequestsScreen: React.FC = () => {
         useNativeDriver: true,
       }).start();
       
-      await workerAPI.acceptRequest(requestId);
-      setRequests(requests.filter(req => req.id !== requestId));
+      // Update request status in Firestore
+      const requestRef = doc(db, 'pickupRequests', requestId);
+      await updateDoc(requestRef, {
+        status: 'accepted',
+        workerAssigned: 'current-worker-id', // Replace with actual worker ID
+        acceptedAt: new Date()
+      });
+      
+      // The real-time listener will update the UI automatically
       
       // Reset animation
       fadeAnim.setValue(1);
     } catch (error) {
       console.error('Error accepting request:', error);
+      alert('Failed to accept request. Please try again.');
     }
   };
 
-  const getUrgencyConfig = (urgency: string) => {
-    const configs = {
-      high: { 
+  const getUrgencyConfig = (pickupOption: string, scheduledDateTime?: Date) => {
+    if (pickupOption === 'instant') {
+      return { 
         colors: dark ? ['#DC2626', '#B91C1C'] : ['#FEE2E2', '#FECACA'], 
         textColor: dark ? '#FEE2E2' : '#DC2626',
         icon: 'flash',
         label: 'URGENT'
-      },
-      medium: { 
-        colors: dark ? ['#D97706', '#B45309'] : ['#FEF3C7', '#FDE68A'], 
-        textColor: dark ? '#FEF3C7' : '#D97706',
-        icon: 'warning',
-        label: 'MEDIUM'
-      },
-      low: { 
-        colors: dark ? ['#059669', '#047857'] : ['#D1FAE5', '#A7F3D0'], 
-        textColor: dark ? '#D1FAE5' : '#059669',
-        icon: 'checkmark-circle',
-        label: 'LOW'
-      },
+      };
+    }
+    
+    if (pickupOption === 'scheduled' && scheduledDateTime) {
+      const now = new Date();
+      const hoursUntilPickup = (scheduledDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      
+      if (hoursUntilPickup < 12) {
+        return { 
+          colors: dark ? ['#D97706', '#B45309'] : ['#FEF3C7', '#FDE68A'], 
+          textColor: dark ? '#FEF3C7' : '#D97706',
+          icon: 'warning',
+          label: 'MEDIUM'
+        };
+      }
+    }
+    
+    return { 
+      colors: dark ? ['#059669', '#047857'] : ['#D1FAE5', '#A7F3D0'], 
+      textColor: dark ? '#D1FAE5' : '#059669',
+      icon: 'checkmark-circle',
+      label: 'LOW'
     };
-    return configs[urgency as keyof typeof configs] || configs.low;
   };
 
   const getWasteTypeConfig = (type: string) => {
     const configs: { [key: string]: { icon: string; color: string; bgColor: string } } = {
       plastic: { 
-        icon: 'leaf-outline', 
+        icon: 'bottle-soda', 
         color: dark ? '#60A5FA' : '#3B82F6',
         bgColor: dark ? '#1E3A8A20' : '#DBEAFE'
       },
       paper: { 
-        icon: 'document-text-outline', 
+        icon: 'file-document', 
         color: dark ? '#34D399' : '#10B981',
         bgColor: dark ? '#064E3B20' : '#D1FAE5'
       },
       metal: { 
-        icon: 'hardware-chip-outline', 
+        icon: 'hammer', 
         color: dark ? '#A78BFA' : '#8B5CF6',
         bgColor: dark ? '#4C1D9520' : '#EDE9FE'
       },
       glass: { 
-        icon: 'diamond-outline', 
+        icon: 'glass-mug', 
         color: dark ? '#FBBF24' : '#F59E0B',
         bgColor: dark ? '#92400E20' : '#FEF3C7'
       },
       organic: { 
-        icon: 'flower-outline', 
+        icon: 'leaf', 
         color: dark ? '#4ADE80' : '#22C55E',
         bgColor: dark ? '#14532D20' : '#DCFCE7'
       },
       ewaste: { 
-        icon: 'phone-portrait-outline', 
+        icon: 'laptop', 
         color: dark ? '#FB7185' : '#EF4444',
         bgColor: dark ? '#7F1D1D20' : '#FEE2E2'
       },
     };
     return configs[type.toLowerCase()] || { 
-      icon: 'trash-outline', 
+      icon: 'trash-can', 
       color: dark ? '#9CA3AF' : '#6B7280',
       bgColor: dark ? '#37415120' : '#F3F4F6'
     };
   };
 
+  const getPickupOptionDetails = (option: string) => {
+    const options = {
+      instant: { label: 'Instant Pickup', icon: 'flash', color: '#DC2626' },
+      scheduled: { label: 'Scheduled', icon: 'calendar', color: '#D97706' },
+      daily: { label: 'Daily', icon: 'repeat', color: '#059669' }
+    };
+    return options[option as keyof typeof options] || options.scheduled;
+  };
+
   const filteredRequests = requests.filter(req => {
-    const matchesFilter = filterUrgency === 'all' || req.urgency === filterUrgency;
+    const matchesUrgency = filterUrgency === 'all' || req.urgency === filterUrgency;
+    const matchesStatus = filterStatus === 'all' || req.status === filterStatus;
     const matchesSearch = req.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         req.address.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
+                         req.userAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         req.wasteItems.some(item => 
+                           item.wasteType.toLowerCase().includes(searchQuery.toLowerCase())
+                         );
+    return matchesUrgency && matchesStatus && matchesSearch;
   });
 
   const headerOpacity = scrollY.interpolate({
@@ -228,8 +434,9 @@ const AvailableRequestsScreen: React.FC = () => {
   });
 
   const renderRequestCard = ({ item: request, index }: { item: PickupRequest; index: number }) => {
-    const urgencyConfig = getUrgencyConfig(request.urgency);
+    const urgencyConfig = getUrgencyConfig(request.pickupOption, request.scheduledDateTime);
     const isExpanded = expandedCard === request.id;
+    const pickupOption = getPickupOptionDetails(request.pickupOption);
     
     return (
       <Animated.View
@@ -262,12 +469,11 @@ const AvailableRequestsScreen: React.FC = () => {
               <View style={styles.priorityIndicator}>
                 <LinearGradient
                   colors={urgencyConfig.colors as [string, string]}
-
                   style={styles.priorityBadge}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
-                  <Ionicons 
+                  <MaterialCommunityIcons 
                     name={urgencyConfig.icon as any} 
                     size={12} 
                     color={urgencyConfig.textColor} 
@@ -292,7 +498,11 @@ const AvailableRequestsScreen: React.FC = () => {
                       ]}
                       labelStyle={{ fontSize: 20, fontWeight: 'bold' }}
                     />
-                    <View style={styles.onlineIndicator} />
+                    <View style={[
+                      styles.statusIndicator,
+                      { backgroundColor: request.status === 'pending' ? '#10B981' : 
+                                        request.status === 'accepted' ? '#F59E0B' : '#6366F1' }
+                    ]} />
                   </View>
                   
                   <View style={styles.userInfo}>
@@ -300,16 +510,16 @@ const AvailableRequestsScreen: React.FC = () => {
                       {request.userName}
                     </Text>
                     <View style={styles.userMetrics}>
-                      <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#FFD700" />
-                        <Text style={[styles.rating, { color: colors.onSurface }]}>
-                          {request.userRating}
+                      <View style={styles.pickupOptionBadge}>
+                        <MaterialCommunityIcons 
+                          name={pickupOption.icon as any} 
+                          size={12} 
+                          color={pickupOption.color} 
+                        />
+                        <Text style={[styles.pickupOptionText, { color: pickupOption.color }]}>
+                          {pickupOption.label}
                         </Text>
                       </View>
-                      <View style={styles.dot} />
-                      <Text style={[styles.distance, { color: colors.outline }]}>
-                        {formatDistance(request.distance)}
-                      </Text>
                     </View>
                   </View>
                 </View>
@@ -324,7 +534,7 @@ const AvailableRequestsScreen: React.FC = () => {
                       styles.amountText, 
                       { color: dark ? '#FFFFFF' : '#059669' }
                     ]}>
-                      {formatCurrency(request.totalAmount)}
+                      {formatCurrency(request.estimatedAmount)}
                     </Text>
                   </LinearGradient>
                 </View>
@@ -333,38 +543,37 @@ const AvailableRequestsScreen: React.FC = () => {
               {/* Quick Info Grid */}
               <View style={styles.infoGrid}>
                 <View style={[styles.infoItem, { backgroundColor: dark ? colors.surface : '#F8FAFC' }]}>
-                  <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                  <MaterialCommunityIcons name="clock-outline" size={16} color={colors.primary} />
                   <Text style={[styles.infoText, { color: colors.onSurface }]}>
-                    {new Date(request.scheduledDate).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })}
+                    {request.createdAt ? formatDateTime(request.createdAt) : 'Now'}
                   </Text>
                 </View>
                 
-                <View style={[styles.infoItem, { backgroundColor: dark ? colors.surface : '#F8FAFC' }]}>
-                  <Ionicons name="scale-outline" size={16} color={colors.primary} />
-                  <Text style={[styles.infoText, { color: colors.onSurface }]}>
-                    {request.estimatedWeight || '2-5'}kg
-                  </Text>
-                </View>
+                {request.pickupOption === 'scheduled' && request.scheduledDateTime && (
+                  <View style={[styles.infoItem, { backgroundColor: dark ? colors.surface : '#F8FAFC' }]}>
+                    <MaterialCommunityIcons name="calendar-clock" size={16} color={colors.primary} />
+                    <Text style={[styles.infoText, { color: colors.onSurface }]}>
+                      {formatDateTime(request.scheduledDateTime)}
+                    </Text>
+                  </View>
+                )}
                 
                 <View style={[styles.infoItem, { backgroundColor: dark ? colors.surface : '#F8FAFC' }]}>
-                  <Ionicons name="time-outline" size={16} color={colors.primary} />
+                  <MaterialCommunityIcons name="weight-kilogram" size={16} color={colors.primary} />
                   <Text style={[styles.infoText, { color: colors.onSurface }]}>
-                    {request.preferredTime || 'Flexible'}
+                    {request.wasteItems.reduce((total, item) => total + parseFloat(item.quantity || '0'), 0)}kg
                   </Text>
                 </View>
               </View>
 
               {/* Address */}
               <View style={styles.addressContainer}>
-                <Ionicons name="location-outline" size={18} color={colors.primary} />
+                <MaterialCommunityIcons name="map-marker-outline" size={18} color={colors.primary} />
                 <Text 
                   style={[styles.addressText, { color: colors.outline }]} 
                   numberOfLines={isExpanded ? undefined : 1}
                 >
-                  {request.address}
+                  {request.userAddress}
                 </Text>
               </View>
 
@@ -374,8 +583,8 @@ const AvailableRequestsScreen: React.FC = () => {
                 showsHorizontalScrollIndicator={false}
                 style={styles.wasteTypesScroll}
               >
-                {request.wasteTypes.map((waste, idx) => {
-                  const config = getWasteTypeConfig(waste.name);
+                {request.wasteItems.map((waste, idx) => {
+                  const config = getWasteTypeConfig(waste.wasteType);
                   return (
                     <View 
                       key={idx} 
@@ -384,9 +593,9 @@ const AvailableRequestsScreen: React.FC = () => {
                         { backgroundColor: config.bgColor }
                       ]}
                     >
-                      <Ionicons name={config.icon as any} size={14} color={config.color} />
+                      <MaterialCommunityIcons name={config.icon as any} size={14} color={config.color} />
                       <Text style={[styles.wasteTypeText, { color: config.color }]}>
-                        {waste.quantity}{waste.unit} {waste.name}
+                        {waste.quantity}{waste.unit} {waste.wasteType}
                       </Text>
                     </View>
                   );
@@ -397,43 +606,98 @@ const AvailableRequestsScreen: React.FC = () => {
               {isExpanded && (
                 <Animated.View style={styles.expandedContent}>
                   <View style={styles.divider} />
-                  {request.imageUrl && (
-                    <View style={styles.imageContainer}>
-                      <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
-                        Waste Image
-                      </Text>
-                      {/* Add image component here */}
-                    </View>
-                  )}
+                  
+                  {/* Detailed Waste Items */}
+                  <View style={styles.detailedWasteList}>
+                    <Text style={[styles.sectionTitle, { color: colors.onSurface, marginBottom: 12 }]}>
+                      Waste Details
+                    </Text>
+                    {request.wasteItems.map((waste, idx) => (
+                      <View key={idx} style={styles.detailedWasteItem}>
+                        <View style={styles.wasteItemLeft}>
+                          <Text style={[styles.wasteItemName, { color: colors.onSurface }]}>
+                            {waste.wasteType}
+                          </Text>
+                          <Text style={[styles.wasteItemDetail, { color: colors.outline }]}>
+                            {waste.quantity} kg × {formatCurrency(waste.pricePerKg)}/kg
+                          </Text>
+                        </View>
+                        <Text style={[styles.wasteItemValue, { color: colors.primary }]}>
+                          {formatCurrency(parseFloat(waste.quantity) * waste.pricePerKg)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* Pickup Instructions */}
+                  <View style={styles.instructionsContainer}>
+                    <Text style={[styles.sectionTitle, { color: colors.onSurface, marginBottom: 8 }]}>
+                      Pickup Instructions
+                    </Text>
+                    <Text style={[styles.instructionsText, { color: colors.outline }]}>
+                      {request.pickupOption === 'instant' 
+                        ? 'Please collect within 2 hours. Customer expects quick service.'
+                        : request.pickupOption === 'scheduled'
+                        ? `Scheduled for ${request.scheduledDateTime ? formatDateTime(request.scheduledDateTime) : 'specific time'}. Please arrive on time.`
+                        : 'This is a daily pickup. Please follow the regular schedule.'
+                      }
+                    </Text>
+                  </View>
                 </Animated.View>
               )}
 
               {/* Action Buttons */}
               <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.detailsBtn}>
+                <TouchableOpacity 
+                  style={styles.detailsBtn}
+                  onPress={() => setExpandedCard(isExpanded ? null : request.id)}
+                >
                   <LinearGradient
                     colors={dark ? 
                       ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)'] : 
                       ['#F3F4F6', '#E5E7EB']}
                     style={styles.buttonGradient}
                   >
-                    <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
-                    <Text style={[styles.buttonText, { color: colors.primary }]}>Details</Text>
+                    <MaterialCommunityIcons 
+                      name={isExpanded ? "chevron-up" : "information-outline"} 
+                      size={18} 
+                      color={colors.primary} 
+                    />
+                    <Text style={[styles.buttonText, { color: colors.primary }]}>
+                      {isExpanded ? 'Less' : 'Details'}
+                    </Text>
                   </LinearGradient>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={styles.acceptBtn}
-                  onPress={() => handleAcceptRequest(request.id)}
-                >
-                  <LinearGradient
-                    colors={['#10B981', '#059669']}
-                    style={styles.buttonGradient}
+                {request.status === 'pending' && (
+                  <TouchableOpacity 
+                    style={styles.acceptBtn}
+                    onPress={() => handleAcceptRequest(request.id)}
                   >
-                    <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-                    <Text style={styles.acceptButtonText}>Accept</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+                    <LinearGradient
+                      colors={['#10B981', '#059669']}
+                      style={styles.buttonGradient}
+                    >
+                      <MaterialCommunityIcons name="check-circle-outline" size={18} color="#FFFFFF" />
+                      <Text style={styles.acceptButtonText}>Accept</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+
+                {request.status === 'accepted' && (
+                  <TouchableOpacity 
+                    style={styles.inProgressBtn}
+                    onPress={() => console.log('Mark as completed')}
+                  >
+                    <LinearGradient
+                      colors={['#6366F1', '#4F46E5']}
+                      style={styles.buttonGradient}
+                    >
+                      <MaterialCommunityIcons name="progress-clock" size={18} color="#FFFFFF" />
+                      <Text style={styles.inProgressButtonText}>In Progress</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
               </View>
             </LinearGradient>
           </Surface>
@@ -449,6 +713,40 @@ const AvailableRequestsScreen: React.FC = () => {
         backgroundColor={dark ? colors.surface : '#FFFFFF'}
       />
       
+      {!isAuthenticated && (
+        <View style={styles.authErrorContainer}>
+          <Text style={styles.authErrorText}>
+            Connecting to server...
+          </Text>
+        </View>
+      )}
+
+      {/* New Request Notification */}
+      <Animated.View 
+        style={[
+          styles.newRequestNotification,
+          { 
+            opacity: newRequestAnim,
+            transform: [{
+              translateY: newRequestAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-100, 0]
+              })
+            }]
+          }
+        ]}
+      >
+        <LinearGradient
+          colors={['#10B981', '#059669']}
+          style={styles.notificationGradient}
+        >
+          <MaterialCommunityIcons name="bell-ring-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.notificationText}>
+            {newRequestsCount} new request{newRequestsCount !== 1 ? 's' : ''} available!
+          </Text>
+        </LinearGradient>
+      </Animated.View>
+
       {/* Animated Header */}
       <Animated.View style={[styles.header, { opacity: headerOpacity }]}>
         <Surface style={[styles.headerCard, { backgroundColor: colors.surface }]} elevation={4}>
@@ -462,13 +760,19 @@ const AvailableRequestsScreen: React.FC = () => {
             <View style={styles.welcomeSection}>
               <Text style={styles.welcomeText}>Ready to earn?</Text>
               <Text style={styles.headerTitle}>Available Requests</Text>
+              {!isOnline && (
+                <View style={styles.offlineBadge}>
+                  <MaterialCommunityIcons name="wifi-off" size={12} color="#FFFFFF" />
+                  <Text style={styles.offlineText}>Offline</Text>
+                </View>
+              )}
             </View>
 
             {/* Stats Grid */}
             <Animated.View style={[styles.statsGrid, { transform: [{ scale: pulseAnim }] }]}>
               <View style={styles.statCard}>
-                <Text style={styles.statValue}>{requests.length}</Text>
-                <Text style={styles.statLabel}>Available</Text>
+                <Text style={styles.statValue}>{stats.pendingRequests}</Text>
+                <Text style={styles.statLabel}>Pending</Text>
               </View>
               <View style={styles.statCard}>
                 <Text style={styles.statValue}>{stats.completedToday}</Text>
@@ -480,7 +784,7 @@ const AvailableRequestsScreen: React.FC = () => {
               </View>
               <View style={styles.statCard}>
                 <View style={styles.ratingRow}>
-                  <Ionicons name="star" size={16} color="#FFD700" />
+                  <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
                   <Text style={styles.statValue}>{stats.rating}</Text>
                 </View>
                 <Text style={styles.statLabel}>Rating</Text>
@@ -493,7 +797,7 @@ const AvailableRequestsScreen: React.FC = () => {
       {/* Search and Filters */}
       <View style={styles.controlsContainer}>
         <Searchbar
-          placeholder="Search by name or location..."
+          placeholder="Search by name, address, or waste type..."
           onChangeText={setSearchQuery}
           value={searchQuery}
           style={[
@@ -505,31 +809,63 @@ const AvailableRequestsScreen: React.FC = () => {
         />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
-          {['all', 'high', 'medium', 'low'].map((filter) => (
-            <Chip
-              key={filter}
-              selected={filterUrgency === filter}
-              onPress={() => setFilterUrgency(filter)}
-              style={[
-                styles.filterChip,
-                {
-                  backgroundColor: filterUrgency === filter 
-                    ? colors.primary 
-                    : (dark ? colors.surface : '#FFFFFF')
-                }
-              ]}
-              textStyle={[
-                styles.filterText,
-                {
-                  color: filterUrgency === filter 
-                    ? '#FFFFFF' 
-                    : colors.onSurface
-                }
-              ]}
-            >
-              {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
-            </Chip>
-          ))}
+          <View style={styles.filterRow}>
+            <Text style={[styles.filterLabel, { color: colors.onSurface }]}>Priority:</Text>
+            {['all', 'high', 'medium', 'low'].map((filter) => (
+              <Chip
+                key={filter}
+                selected={filterUrgency === filter}
+                onPress={() => setFilterUrgency(filter)}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: filterUrgency === filter 
+                      ? colors.primary 
+                      : (dark ? colors.surface : '#FFFFFF')
+                  }
+                ]}
+                textStyle={[
+                  styles.filterText,
+                  {
+                    color: filterUrgency === filter 
+                      ? '#FFFFFF' 
+                      : colors.onSurface
+                  }
+                ]}
+              >
+                {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+              </Chip>
+            ))}
+          </View>
+
+          <View style={styles.filterRow}>
+            <Text style={[styles.filterLabel, { color: colors.onSurface }]}>Status:</Text>
+            {['all', 'pending', 'accepted'].map((status) => (
+              <Chip
+                key={status}
+                selected={filterStatus === status}
+                onPress={() => setFilterStatus(status)}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: filterStatus === status 
+                      ? colors.primary 
+                      : (dark ? colors.surface : '#FFFFFF')
+                  }
+                ]}
+                textStyle={[
+                  styles.filterText,
+                  {
+                    color: filterStatus === status 
+                      ? '#FFFFFF' 
+                      : colors.onSurface
+                  }
+                ]}
+              >
+                {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+              </Chip>
+            ))}
+          </View>
         </ScrollView>
       </View>
 
@@ -544,14 +880,14 @@ const AvailableRequestsScreen: React.FC = () => {
               style={styles.emptyCard}
             >
               <View style={[styles.emptyIcon, { backgroundColor: dark ? colors.surface : '#E2E8F0' }]}>
-                <Ionicons name="leaf-outline" size={48} color={colors.outline} />
+                <MaterialCommunityIcons name="recycle" size={48} color={colors.outline} />
               </View>
               <Text style={[styles.emptyTitle, { color: colors.onSurface }]}>
-                No requests available
+                {loading ? 'Loading requests...' : 'No requests available'}
               </Text>
               <Text style={[styles.emptySubtitle, { color: colors.outline }]}>
                 {filterUrgency === 'all' 
-                  ? "New pickup requests will appear here"
+                  ? "New pickup requests will appear here automatically"
                   : `No ${filterUrgency} priority requests right now`
                 }
               </Text>
@@ -560,6 +896,7 @@ const AvailableRequestsScreen: React.FC = () => {
                 icon="refresh"
                 onPress={onRefresh}
                 style={styles.refreshBtn}
+                loading={refreshing}
               >
                 Refresh
               </Button>
@@ -583,20 +920,50 @@ const AvailableRequestsScreen: React.FC = () => {
         />
       )}
 
-      {/* Floating Action Button */}
-      <FAB
-        icon="map-outline"
-        style={[styles.fab, { backgroundColor: colors.primary }]}
-        onPress={() => console.log('Open map view')}
-        label="Map View"
-      />
+      {/* Floating Action Buttons */}
+      <View style={styles.fabContainer}>
+        <FAB
+          icon="map-outline"
+          style={[styles.fab, styles.fabMap, { backgroundColor: colors.primary }]}
+          onPress={() => console.log('Open map view')}
+          label="Map View"
+        />
+        <FAB
+          icon="filter-variant"
+          style={[styles.fab, styles.fabFilter, { backgroundColor: colors.secondary }]}
+          onPress={() => console.log('Open advanced filters')}
+          small
+        />
+      </View>
     </View>
   );
 };
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  newRequestNotification: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 16,
+  },
+  notificationGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  notificationText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
   },
   header: {
     paddingHorizontal: 16,
@@ -607,11 +974,26 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
   },
+   authErrorContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FF9800',
+    padding: 10,
+    zIndex: 1001,
+    alignItems: 'center',
+  },
+  authErrorText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
   headerGradient: {
     padding: 24,
   },
   welcomeSection: {
     marginBottom: 24,
+    position: 'relative',
   },
   welcomeText: {
     fontSize: 14,
@@ -622,6 +1004,23 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  offlineBadge: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6B7280',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  offlineText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -657,10 +1056,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   filtersContainer: {
+    marginBottom: 8,
+  },
+  filterRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginRight: 12,
+    minWidth: 60,
   },
   filterChip: {
-    marginRight: 12,
+    marginRight: 8,
     elevation: 2,
   },
   filterText: {
@@ -718,14 +1128,13 @@ const styles = StyleSheet.create({
   userAvatar: {
     elevation: 4,
   },
-  onlineIndicator: {
+  statusIndicator: {
     position: 'absolute',
     bottom: 2,
     right: 2,
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#10B981',
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
@@ -742,24 +1151,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  ratingContainer: {
+  pickupOptionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
     gap: 4,
   },
-  rating: {
-    fontSize: 13,
+  pickupOptionText: {
+    fontSize: 12,
     fontWeight: '500',
-  },
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#9CA3AF',
-    marginHorizontal: 8,
-  },
-  distance: {
-    fontSize: 13,
   },
   amountContainer: {
     marginLeft: 16,
@@ -778,15 +1181,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginBottom: 16,
+    flexWrap: 'wrap',
   },
   infoItem: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
     gap: 6,
+    minWidth: 100,
   },
   infoText: {
     fontSize: 12,
@@ -827,13 +1231,42 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.1)',
     marginBottom: 16,
   },
-  imageContainer: {
+  detailedWasteList: {
+    marginBottom: 16,
+  },
+  detailedWasteItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  wasteItemLeft: {
+    flex: 1,
+  },
+  wasteItemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  wasteItemDetail: {
+    fontSize: 12,
+  },
+  wasteItemValue: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  instructionsContainer: {
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 8,
+  },
+  instructionsText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   actionRow: {
     flexDirection: 'row',
@@ -845,6 +1278,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   acceptBtn: {
+    flex: 2,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  inProgressBtn: {
     flex: 2,
     borderRadius: 12,
     overflow: 'hidden',
@@ -862,6 +1300,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   acceptButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  inProgressButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
@@ -903,12 +1346,21 @@ const styles = StyleSheet.create({
   refreshBtn: {
     paddingHorizontal: 24,
   },
-  fab: {
+  fabContainer: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
+    gap: 16,
+  },
+  fab: {
     elevation: 8,
+  },
+  fabMap: {
+    borderRadius: 28,
+  },
+  fabFilter: {
+    borderRadius: 20,
   },
 });
 

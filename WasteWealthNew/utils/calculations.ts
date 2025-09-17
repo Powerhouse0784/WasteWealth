@@ -31,15 +31,14 @@ export const calculateWasteValue = (
 };
 
 export const calculateCO2Saved = (weightInKg: number, wasteType: string): number => {
-  // Approximate CO2 savings in kg per kg of waste recycled
   const co2Factors: { [key: string]: number } = {
-    plastic: 1.5,   // kg CO2 saved per kg plastic recycled
-    paper: 0.9,     // kg CO2 saved per kg paper recycled
-    metal: 2.0,     // kg CO2 saved per kg metal recycled
-    glass: 0.3,     // kg CO2 saved per kg glass recycled
-    ewaste: 3.0,    // kg CO2 saved per kg e-waste recycled
-    organic: 0.2,   // kg CO2 saved per kg organic composted
-    default: 1.0,   // Default factor
+    plastic: 1.5,   
+    paper: 0.9,     
+    metal: 2.0,     
+    glass: 0.3,     
+    ewaste: 3.0,    
+    organic: 0.2,  
+    default: 1.0,   
   };
   
   const factor = co2Factors[wasteType.toLowerCase()] || co2Factors.default;
@@ -102,8 +101,6 @@ export const formatDate = (dateString: string): string => {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
   });
 };
 
@@ -112,6 +109,25 @@ export const formatTime = (dateString: string): string => {
   return date.toLocaleTimeString('en-IN', {
     hour: '2-digit',
     minute: '2-digit',
+  });
+};
+
+export const formatDateTime = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // Check if the date is valid
+  if (isNaN(dateObj.getTime())) {
+    return 'Invalid date';
+  }
+  
+  return dateObj.toLocaleString('en-IN', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
   });
 };
 
@@ -132,7 +148,6 @@ export const calculateTimeAgo = (dateStr: string): string => {
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays} days ago`;
 };
-
 
 export const calculateAverageRating = (ratings: number[]): number => {
   if (ratings.length === 0) return 0;
@@ -158,4 +173,41 @@ export const calculateCarbonCredits = (wasteWeight: number, wasteType: string): 
   
   const factor = creditFactors[wasteType.toLowerCase()] || 1.0;
   return wasteWeight * factor;
+};
+
+// Additional utility functions for the AvailableRequestsScreen
+export const getUrgencyLevel = (pickupOption: string, scheduledDateTime?: Date): string => {
+  if (pickupOption === 'instant') return 'high';
+  
+  if (pickupOption === 'scheduled' && scheduledDateTime) {
+    const now = new Date();
+    const hoursUntilPickup = (scheduledDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return hoursUntilPickup < 12 ? 'medium' : 'low';
+  }
+  
+  return 'low';
+};
+
+export const calculateTotalWeight = (wasteItems: Array<{quantity: string, unit: string}>): number => {
+  return wasteItems.reduce((total, item) => {
+    const quantity = parseFloat(item.quantity) || 0;
+    // Convert to kg if needed (simplified conversion)
+    const weightInKg = item.unit === 'kg' ? quantity : quantity * 0.5;
+    return total + weightInKg;
+  }, 0);
+};
+
+export const formatPickupSchedule = (pickupOption: string, scheduledDateTime?: Date): string => {
+  switch (pickupOption) {
+    case 'instant':
+      return 'Instant Pickup (Within 2 hours)';
+    case 'scheduled':
+      return scheduledDateTime 
+        ? `Scheduled: ${formatDateTime(scheduledDateTime)}`
+        : 'Scheduled Pickup';
+    case 'daily':
+      return 'Daily Pickup Service';
+    default:
+      return 'Standard Pickup';
+  }
 };

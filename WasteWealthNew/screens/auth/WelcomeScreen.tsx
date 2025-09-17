@@ -22,7 +22,7 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
         />
         
         <Text variant="headlineMedium" style={[styles.title, { color: colors.primary }]}>
-          Welcome to EcoWaste
+          Welcome to Waste2Wealth
         </Text>
         
         <Text variant="bodyLarge" style={[styles.subtitle, { color: colors.onSurface }]}>

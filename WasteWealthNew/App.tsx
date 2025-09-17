@@ -5,6 +5,8 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LoadingProvider, useLoading } from './context/LoadingContext';
+import { LanguageProvider } from './context/LanguageContext';
+import './i18n'; // Import i18n configuration
 import RootNavigator from './navigation/RootNavigator';
 import LoadingOverlay from './components/common/LoadingOverlay';
 
@@ -28,7 +30,9 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <LoadingProvider>
-          <Main />
+          <LanguageProvider>
+            <Main />
+          </LanguageProvider>
         </LoadingProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -70,6 +70,11 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
     case 'Education':
       navigation.navigate('EducationScreen');
       break;
+      case 'BuyProducts':
+        navigation.navigate('BuyProductScreen');
+        break;
+      case 'ScanWaste':
+        navigation.navigate('ScanWasteScreen');
     default:
       navigation.goBack();
       break;
@@ -143,6 +148,23 @@ const AllActionsScreen: React.FC = ({ navigation }: any) => {
       iconBg: theme.dark ? 'rgba(156, 39, 176, 0.2)' : '#F3E5F5',
       description: 'Connect with eco-warriors',
     },
+    {
+  label: 'Buy Products',
+  icon: 'shopping',
+  screen: 'BuyProducts',
+  color: '#9C27B0',
+  iconBg: theme.dark ? 'rgba(233, 30, 99, 0.2)' : '#FCE4EC',
+  description: 'Browse and purchase useful products',
+},
+{
+  label: 'Scan Waste',
+  icon: 'camera',
+  screen: 'ScanWaste',
+  color: '#9C27B0', 
+  iconBg: '#E1BEE7',
+  description: 'Scan your waste items for quick classification',
+},
+
     {
       label: 'Eco Education',
       icon: 'school',

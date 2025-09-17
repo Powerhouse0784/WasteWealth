@@ -13,7 +13,9 @@ import RewardScreen from '../screens/user/RewardScreen';
 import ChatScreen from '../screens/user/ChatScreen';
 import EducationScreen from '../screens/user/EducationScreen';
 import SupportScreen from '../screens/user/SupportScreen';
-
+import UserDashboard from '../screens/user/UserDashboardScreen';
+import BuyProductScreen from '../screens/common/BuyProductScreen';
+import ScanWasteScreen from '../screens/common/ScanWasteScreen';
 
 export type UserTabParamList = {
   Dashboard: undefined;
@@ -25,20 +27,25 @@ export type UserTabParamList = {
 
 export type UserStackParamList = {
   Main: undefined;
+  UserDashboard: undefined;  
+  Profile: { userId: string };
+  Settings: undefined;
   SchedulePickup: { wasteItems: any };
   RequestStatus: { requestId: string };
   AddressManagement: undefined;
   Notifications: undefined;
+  SellWaste: undefined; 
   AllActionScreen: undefined; 
   RewardScreen: undefined;      
   ChatScreen: undefined;         
   EducationScreen: undefined;    
   SupportScreen: undefined;
+  BuyProductScreen: undefined;
+  ScanWasteScreen: undefined;
 };
 
 const Tab = createBottomTabNavigator<UserTabParamList>();
 const Stack = createStackNavigator<UserStackParamList>();
-
 const UserTabs: React.FC = () => {
   const { colors } = useTheme();
 
@@ -59,6 +66,7 @@ const UserTabs: React.FC = () => {
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
+
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -87,7 +95,9 @@ const UserNavigator: React.FC = () => {
       <Stack.Screen name="ChatScreen" component={ChatScreen} />
       <Stack.Screen name="EducationScreen" component={EducationScreen} />
       <Stack.Screen name="SupportScreen" component={SupportScreen} />
-      {/* Other stack screens */}
+      <Stack.Screen name="UserDashboard" component={UserDashboard} />
+      <Stack.Screen name="BuyProductScreen" component={BuyProductScreen} />
+      <Stack.Screen name="ScanWasteScreen" component={ScanWasteScreen} />
     </Stack.Navigator>
   );
 };

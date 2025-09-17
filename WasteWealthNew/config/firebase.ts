@@ -1,6 +1,6 @@
 // config/firebase.ts
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { Auth, getAuth, initializeAuth, User } from 'firebase/auth';
+import { Auth, getAuth, initializeAuth, User, signInAnonymously } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
@@ -9,7 +9,7 @@ import { Platform } from 'react-native';
 
 // Your Firebase config object
 const firebaseConfig = {
-  apiKey: "",
+  apiKey: "AIzaSyAjv5iTU5XYn4GuCKjMg9jofWAwMA_8brY",
   authDomain: "wastewealth-14e1e.firebaseapp.com",
   projectId: "wastewealth-14e1e",
   storageBucket: "wastewealth-14e1e.appspot.com",

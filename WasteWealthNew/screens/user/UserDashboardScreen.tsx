@@ -25,7 +25,9 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withDelay,
+  SharedValue
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 
@@ -51,6 +53,7 @@ interface PickupData {
 const UserDashboardScreen: React.FC = ({ navigation }: any) => {
   const { colors } = useTheme();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   // State
   const [stats, setStats] = useState<DashboardStats>({
@@ -148,7 +151,11 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
       case 'Analytics':
         navigation.navigate('History');
         break;
-      default:
+      case 'BuyProducts':
+        navigation.navigate('BuyProductScreen');
+        break;
+      case 'ScanWaste':
+        navigation.navigate('ScanWasteScreen');
         break;
     }
   };
@@ -172,6 +179,22 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
       color: themeColors.secondary,
       iconBg: colors.secondaryContainer,
     },
+     {
+    label: 'Buy Products',
+    icon: 'shopping',
+    screen: 'BuyProducts',
+    color: themeColors.accent,
+    iconBg: colors.tertiaryContainer,
+    
+  },
+  {
+    label: 'Scan Waste',
+    icon: 'camera',
+    screen: 'ScanWaste',
+    color: '#9C27B0', 
+    iconBg: '#E1BEE7', 
+    
+  },
     {
       label: 'My Wallet',
       icon: 'wallet-outline',
@@ -221,7 +244,7 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
   }, [pcOpacities]);
 
   // Recent pickups (reset every data change)
-  const recAnimOpacities = useRef([] as Animated.SharedValue<number>[]).current;
+  const recAnimOpacities = useRef([] as SharedValue<number>[]).current;
   useEffect(() => {
     recAnimOpacities.length = 0;
     for (let i = 0; i < recentPickups.length; i++) {
@@ -287,7 +310,11 @@ const UserDashboardScreen: React.FC = ({ navigation }: any) => {
       opacity: qaOpacities[idx].value,
     }), []);
     const handlePress = () => {
-      handleNavigation(action.screen);
+      if (action.onPress) {
+        action.onPress();
+      } else {
+        handleNavigation(action.screen);
+      }
     };
     return (
       <Animated.View style={[styles.actionCard, opacityAnim, scaleAnim]}>

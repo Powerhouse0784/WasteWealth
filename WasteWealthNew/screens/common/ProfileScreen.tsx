@@ -3,22 +3,26 @@ import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Card, Button, useTheme, Avatar, List, Divider, Switch } from 'react-native-paper';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme as useAppTheme } from '../../context/ThemeContext';
+import { useLanguage, availableLanguages } from '../../context/LanguageContext';
+import LanguageSelector from '../../components/common/LanguageSelector';
 
 const ProfileScreen: React.FC = () => {
   const { colors } = useTheme();
   const { user, logout } = useAuth();
   const { isDarkTheme, toggleTheme } = useAppTheme();
+  const { t, currentLanguage } = useLanguage();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [languageDialogVisible, setLanguageDialogVisible] = useState(false);
 
   const handleLogout = async () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      t('profile.logout'),
+      t('profile.logoutConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('profile.cancel'), style: 'cancel' },
         {
-          text: 'Logout',
+          text: t('profile.logout'),
           style: 'destructive',
           onPress: async () => {
             setLoading(true);
@@ -26,7 +30,7 @@ const ProfileScreen: React.FC = () => {
               await logout();
             } catch (error) {
               console.error('Logout error:', error);
-              Alert.alert('Error', 'Failed to logout. Please try again.');
+              Alert.alert(t('profile.error'), t('profile.logoutError'));
             } finally {
               setLoading(false);
             }
@@ -36,24 +40,30 @@ const ProfileScreen: React.FC = () => {
     );
   };
 
+  // Get current language display name
+  const getCurrentLanguageName = () => {
+    const language = availableLanguages.find(lang => lang.code === currentLanguage);
+    return language ? language.nativeName : 'English';
+  };
+
   const menuItems = [
     {
-      title: 'Personal Information',
+      title: t('profile.personalInfo'),
       icon: 'account',
       onPress: () => console.log('Edit personal info'),
     },
     {
-      title: 'Addresses',
+      title: t('profile.addresses'),
       icon: 'map-marker',
       onPress: () => console.log('Manage addresses'),
     },
     {
-      title: 'Payment Methods',
+      title: t('profile.paymentMethods'),
       icon: 'credit-card',
       onPress: () => console.log('Manage payments'),
     },
     {
-      title: 'Notifications',
+      title: t('profile.notifications'),
       icon: 'bell',
       onPress: () => console.log('Notification settings'),
       right: () => (
@@ -65,7 +75,7 @@ const ProfileScreen: React.FC = () => {
       ),
     },
     {
-      title: 'Dark Theme',
+      title: t('profile.darkTheme'),
       icon: 'theme-light-dark',
       onPress: () => {},
       right: () => (
@@ -77,12 +87,18 @@ const ProfileScreen: React.FC = () => {
       ),
     },
     {
-      title: 'Help & Support',
+      title: t('profile.language'),
+      icon: 'translate',
+      onPress: () => setLanguageDialogVisible(true),
+      description: getCurrentLanguageName(),
+    },
+    {
+      title: t('profile.helpSupport'),
       icon: 'help-circle',
       onPress: () => console.log('Help & support'),
     },
     {
-      title: 'About App',
+      title: t('profile.aboutApp'),
       icon: 'information',
       onPress: () => console.log('About app'),
     },
@@ -115,7 +131,7 @@ const ProfileScreen: React.FC = () => {
                 0
               </Text>
               <Text variant="bodySmall" style={{ color: colors.onSurfaceDisabled }}>
-                Pickups
+                {t('profile.pickups')}
               </Text>
             </View>
             <View style={styles.statItem}>
@@ -123,7 +139,7 @@ const ProfileScreen: React.FC = () => {
                 ₹0
               </Text>
               <Text variant="bodySmall" style={{ color: colors.onSurfaceDisabled }}>
-                Earned
+                {t('profile.earned')}
               </Text>
             </View>
             <View style={styles.statItem}>
@@ -131,7 +147,7 @@ const ProfileScreen: React.FC = () => {
                 5 
               </Text>
               <Text variant="bodySmall" style={{ color: colors.onSurfaceDisabled }}>
-                Rating
+                {t('profile.rating')}
               </Text>
             </View>
           </View>
@@ -142,7 +158,7 @@ const ProfileScreen: React.FC = () => {
             style={styles.editButton}
             onPress={() => console.log('Edit profile')}
           >
-            Edit Profile
+            {t('profile.editProfile')}
           </Button>
         </Card.Content>
       </Card>
@@ -153,6 +169,7 @@ const ProfileScreen: React.FC = () => {
           <View key={index}>
             <List.Item
               title={item.title}
+              description={item.description}
               left={props => <List.Icon {...props} icon={item.icon} />}
               right={item.right}
               onPress={item.onPress}
@@ -162,14 +179,14 @@ const ProfileScreen: React.FC = () => {
         ))}
       </Card>
 
-      {/* App Version & Logout */}
+      {/* App Version & Copyright */}
       <Card style={styles.footerCard}>
         <Card.Content>
           <Text variant="bodySmall" style={{ textAlign: 'center', color: colors.onSurfaceDisabled }}>
-            App Version 1.0.0
+            {t('profile.appVersion')}
           </Text>
           <Text variant="bodySmall" style={{ textAlign: 'center', color: colors.onSurfaceDisabled }}>
-            © 2025 WasteWealth App
+            {t('profile.copyright')}
           </Text>
         </Card.Content>
       </Card>
@@ -182,8 +199,14 @@ const ProfileScreen: React.FC = () => {
         loading={loading}
         disabled={loading}
       >
-        Logout
+        {t('profile.logout')}
       </Button>
+
+      {/* Language Selector Dialog */}
+      <LanguageSelector
+        visible={languageDialogVisible}
+        onDismiss={() => setLanguageDialogVisible(false)}
+      />
     </ScrollView>
   );
 };
